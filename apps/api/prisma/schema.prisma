@@ -1,0 +1,283 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  SUPPORT_AGENT
+  CUSTOMER
+}
+
+enum ConversationChannel {
+  WEB
+  TELEGRAM
+}
+
+enum ConversationStatus {
+  OPEN
+  AI_ACTIVE
+  WAITING_FOR_AGENT
+  HUMAN_ACTIVE
+  RESOLVED
+  CLOSED
+}
+
+enum MessageSenderType {
+  CUSTOMER
+  AI
+  AGENT
+  SYSTEM
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  PENDING_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum DocumentStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+model Organization {
+  id                 String              @id @default(uuid())
+  name               String
+  slug               String              @unique
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  users              User[]
+  customers          Customer[]
+  conversations      Conversation[]
+  knowledgeDocuments KnowledgeDocument[]
+  tickets            Ticket[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String         @id @default(uuid())
+  email          String         @unique
+  passwordHash   String
+  firstName      String?
+  lastName       String?
+  role           Role           @default(CUSTOMER)
+  organizationId String?
+  organization   Organization?  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  refreshTokens  RefreshToken[]
+  assignedTickets Ticket[]      @relation("AssignedAgent")
+  messages       Message[]      @relation("AgentMessages")
+  assignedConversations Conversation[] @relation("AssignedConversations")
+  auditLogs      AuditLog[]
+  notifications  Notification[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isRevoked Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
+}
+
+model Customer {
+  id             String         @id @default(uuid())
+  organizationId String?
+  organization   Organization?  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  email          String?
+  phone          String?
+  telegramChatId String?        @unique
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  conversations  Conversation[]
+  tickets        Ticket[]
+
+  @@map("customers")
+}
+
+model Conversation {
+  id              String              @id @default(uuid())
+  organizationId  String?
+  organization    Organization?       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customerId      String
+  customer        Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  assignedAgentId String?
+  assignedAgent   User?               @relation("AssignedConversations", fields: [assignedAgentId], references: [id])
+  channel         ConversationChannel @default(WEB)
+  status          ConversationStatus  @default(AI_ACTIVE)
+  metadata        Json?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  messages        Message[]
+  tickets         Ticket[]
+  aiUsages        AIUsage[]
+
+  @@index([status])
+  @@index([channel])
+  @@map("conversations")
+}
+
+model Message {
+  id             String            @id @default(uuid())
+  conversationId String
+  conversation   Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderType     MessageSenderType
+  senderId       String?
+  senderAgent    User?             @relation("AgentMessages", fields: [senderId], references: [id])
+  content        String
+  isInternalNote Boolean           @default(false)
+  aiMetadata     Json?
+  toolCalls      Json?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  toolCallLogs   ToolCall[]
+
+  @@index([conversationId])
+  @@map("messages")
+}
+
+model Ticket {
+  id              String          @id @default(uuid())
+  organizationId  String?
+  organization    Organization?   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customerId      String
+  customer        Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  conversationId  String?
+  conversation    Conversation?   @relation(fields: [conversationId], references: [id])
+  assignedAgentId String?
+  assignedAgent   User?           @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
+  title           String
+  description     String
+  status          TicketStatus    @default(OPEN)
+  priority        TicketPriority  @default(MEDIUM)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  comments        TicketComment[]
+
+  @@map("tickets")
+}
+
+model TicketComment {
+  id        String   @id @default(uuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  @@map("ticket_comments")
+}
+
+model KnowledgeDocument {
+  id             String          @id @default(uuid())
+  organizationId String?
+  organization   Organization?   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title          String
+  filename       String?
+  fileUrl        String?
+  contentType    String
+  status         DocumentStatus  @default(PENDING)
+  errorMessage   String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  chunks         DocumentChunk[]
+
+  @@map("knowledge_documents")
+}
+
+model DocumentChunk {
+  id         String                                @id @default(uuid())
+  documentId String
+  document   KnowledgeDocument                     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  chunkIndex Int
+  content    String
+  embedding  Unsupported("vector(768)")?
+  createdAt  DateTime                              @default(now())
+
+  @@index([documentId])
+  @@map("document_chunks")
+}
+
+model AIUsage {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  provider       String
+  model          String
+  promptTokens   Int
+  completionTokens Int
+  totalTokens    Int
+  costEstimate   Float        @default(0.0)
+  createdAt      DateTime     @default(now())
+
+  @@map("ai_usages")
+}
+
+model ToolCall {
+  id           String   @id @default(uuid())
+  messageId    String?
+  message      Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  toolName     String
+  inputParams  Json
+  outputResult Json?
+  executionMs  Int?
+  isError      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@map("tool_calls")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  type      String   @default("INFO")
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  resource  String
+  details   Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
