@@ -66,14 +66,14 @@ export default function Home() {
       const existingScript = document.getElementById('omni-floating-widget');
       if (!existingScript) {
         const script = document.createElement('script');
-        script.id = 'omni-floating-widget';
+        script.id = 'theara-floating-widget';
         script.src = '/widget.js';
-        script.setAttribute('data-bot-name', 'OmniSupport AI');
-        script.setAttribute('data-company', 'OmniSupport Platform');
+        script.setAttribute('data-bot-name', 'Theara AI Assistant');
+        script.setAttribute('data-company', 'Theara AI Platform');
         script.setAttribute('data-primary-color', '#0284c7');
         script.setAttribute(
           'data-greeting',
-          'សួស្តី! Welcome to OmniSupport AI. How can I help your business automate customer service today?'
+          'សួស្តី! Welcome to Theara AI Support. How can I help your business automate customer service today?'
         );
         script.setAttribute(
           'data-quick-questions',
@@ -133,13 +133,13 @@ export default function Home() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-extrabold text-lg text-white tracking-tight">OmniSupport AI</span>
+              <span className="font-extrabold text-lg text-white tracking-tight">Theara AI Support</span>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-950 text-sky-400 border border-sky-800">
                 {isKm ? 'ប្រព័ន្ធសហគ្រាស' : 'Enterprise Platform'}
               </span>
             </div>
             <p className="text-[11px] text-slate-400 hidden sm:block">
-              {isKm ? 'ប្រព័ន្ធ AI Customer Support សម្រាប់គ្រប់ស្ថាប័ន' : 'Universal Multi-Tenant AI Support Suite'}
+              {isKm ? 'ប្រព័ន្ធ AI Customer Support សម្រាប់គ្រប់ស្ថាប័ន' : 'Enterprise Multi-Tenant AI Support Suite'}
             </p>
           </div>
         </div>
@@ -178,7 +178,7 @@ export default function Home() {
         <div className="space-y-6 max-w-3xl">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-950/80 border border-sky-800 text-sky-300 text-xs font-medium shadow-xs">
             <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-            <span>{isKm ? 'ឆ្លើយតប ២៤/៧ • ភាសាខ្មែរ & English គ្មានការភ័ន្តច្រឡំ' : '24/7 AI Customer Support Automation • Khmer & English'}</span>
+            <span>{isKm ? 'ប្រព័ន្ធឆ្លើយតបអតិថិជន ២៤/៧ • គាំទ្រភាសាខ្មែរ & អង់គ្លេស' : '24/7 AI Customer Support Automation • Khmer & English'}</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
@@ -201,8 +201,8 @@ export default function Home() {
 
           <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto leading-relaxed">
             {isKm
-              ? 'ដាក់ឱ្យដំណើរការជំនួយការ AI ឆ្លាតវៃដែលយល់ដឹងពីឯកសារ និងសេវាកម្មក្រុមហ៊ុនរបស់អ្នកដោយសុក្រឹត (RAG)។ បញ្ជូនទៅកាន់បុគ្គលិកផ្ទាល់ដោយរលូន គ្មានការលាយអក្សរថៃ និងបង្កប់លើ Website ងាយស្រួលដោយកូដ ១ បន្ទាត់។'
-              : 'Deploy an intelligent customer support assistant trained strictly on your organization’s documents, FAQs, and policies. Seamless escalation to human agents, zero Thai language pollution, and one-line website embedding.'}
+              ? 'ដាក់ឱ្យដំណើរការជំនួយការ AI ឆ្លាតវៃដែលយល់ដឹងពីឯកសារ និងសេវាកម្មក្រុមហ៊ុនរបស់អ្នកដោយសុក្រឹត (RAG) ជាមួយការគាំទ្រភាសាខ្មែរយ៉ាងច្បាស់លាស់ ការបញ្ជូនទៅកាន់បុគ្គលិកផ្ទាល់ដោយរលូន និងបង្កប់លើ Website ងាយស្រួលដោយកូដ ១ បន្ទាត់។'
+              : 'Deploy an intelligent customer support assistant grounded strictly in your enterprise knowledge base, policies, and workflows. Seamless human agent handoff, native Khmer and English support, and effortless one-line website embedding.'}
           </p>
 
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
