@@ -114,47 +114,9 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Quick Role Fillers for testing */}
-        <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-2">
-          <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 text-center">
-            Quick Sign-In by Role / ចូលគណនីរហ័សតាមតួនាទី:
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('admin@acme-support.local');
-                setPassword('AdminPass123!');
-              }}
-              className="p-2 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50/70 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-left text-xs hover:border-amber-400 transition-colors cursor-pointer"
-            >
-              <span className="font-bold block text-xs">👑 Super Admin</span>
-              <span className="text-[10px] text-amber-600 dark:text-amber-400 truncate block mt-0.5">admin@acme-support.local</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('admin@company.com');
-                setPassword('SecureP@ss123');
-              }}
-              className="p-2 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-left text-xs hover:border-emerald-400 transition-colors cursor-pointer"
-            >
-              <span className="font-bold block text-xs">🏢 Tenant Admin</span>
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 truncate block mt-0.5">admin@company.com</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('agent@company.com');
-                setPassword('SecureP@ss123');
-              }}
-              className="p-2 rounded-xl border border-sky-300 dark:border-sky-800 bg-sky-50/70 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 text-left text-xs hover:border-sky-400 transition-colors cursor-pointer"
-            >
-              <span className="font-bold block text-xs">🎧 Support Agent</span>
-              <span className="text-[10px] text-sky-600 dark:text-sky-400 truncate block mt-0.5">agent@company.com</span>
-            </button>
-          </div>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center pt-2">
+        {/* Professional Footer */}
+        <div className="pt-4 border-t border-slate-200 dark:border-slate-800 text-center">
+          <p className="text-[11px] text-slate-400 dark:text-slate-500">
             Theara AI Support Platform • Built by Chim Theara (ជឺម ធារ៉ា)
           </p>
         </div>
