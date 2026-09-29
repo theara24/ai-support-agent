@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { ConversationChannel, ConversationStatus } from '@ai-support/types';
+import { ConversationChannel, ConversationStatus, MessageSenderType } from '@ai-support/types';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateConversationDto {
@@ -45,4 +45,9 @@ export class CreateMessageDto {
   @ApiPropertyOptional({ example: false })
   @IsOptional()
   isInternalNote?: boolean;
+
+  @ApiPropertyOptional({ enum: MessageSenderType })
+  @IsOptional()
+  @IsEnum(MessageSenderType)
+  senderType?: MessageSenderType;
 }

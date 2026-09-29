@@ -1,13 +1,13 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConversationsService } from './conversations.service';
 import { ConversationsController } from './conversations.controller';
-import { MessagesGateway } from '../messages/messages.gateway';
 import { AiModule } from '../ai/ai.module';
+import { TelegramModule } from '../telegram/telegram.module';
 
 @Module({
-  imports: [AiModule],
+  imports: [AiModule, forwardRef(() => TelegramModule)],
   controllers: [ConversationsController],
-  providers: [ConversationsService, MessagesGateway],
-  exports: [ConversationsService, MessagesGateway],
+  providers: [ConversationsService],
+  exports: [ConversationsService],
 })
 export class ConversationsModule {}

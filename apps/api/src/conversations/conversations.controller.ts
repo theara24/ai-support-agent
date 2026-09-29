@@ -17,8 +17,14 @@ import {
   CreateMessageDto,
 } from './dto/conversation.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard';
 import { GetUser } from '../common/decorators/get-user.decorator';
-import { ConversationStatus, ConversationChannel, MessageSenderType, AuthenticatedUser } from '@ai-support/types';
+import {
+  ConversationStatus,
+  ConversationChannel,
+  MessageSenderType,
+  AuthenticatedUser,
+} from '@ai-support/types';
 
 @ApiTags('conversations')
 @Controller('conversations')
@@ -49,22 +55,36 @@ export class ConversationsController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get conversation details & message timeline' })
-  async findOne(@Param('id') id: string) {
-    return this.conversationsService.findOne(id);
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiOperation({ summary: 'Get conversation details & message timeline (internal notes filtered for customers)' })
+  async findOne(@Param('id') id: string, @GetUser() user?: AuthenticatedUser) {
+    return this.conversationsService.findOne(id, user);
   }
 
   @Post(':id/messages')
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Send a message in a conversation' })
   async addMessage(
     @Param('id') id: string,
     @Body() dto: CreateMessageDto,
     @GetUser() user?: AuthenticatedUser,
   ) {
-    const senderType = user ? MessageSenderType.AGENT : MessageSenderType.CUSTOMER;
-    return this.conversationsService.addMessage(id, dto, senderType, user?.id);
+    let senderType = dto.senderType;
+    if (!senderType) {
+      senderType = user ? MessageSenderType.AGENT : MessageSenderType.CUSTOMER;
+    }
+
+    // Customers cannot post internal notes
+    if (senderType === MessageSenderType.CUSTOMER) {
+      dto.isInternalNote = false;
+    }
+
+    return this.conversationsService.addMessage(
+      id,
+      dto,
+      senderType,
+      senderType === MessageSenderType.AGENT ? user?.id : undefined,
+    );
   }
 
   @Patch(':id/status')

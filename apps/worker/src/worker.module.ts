@@ -13,7 +13,8 @@ import { DocumentProcessorService } from './document-processor.service';
       useFactory: (configService: ConfigService) => ({
         connection: {
           host: configService.get<string>('REDIS_HOST', 'localhost'),
-          port: configService.get<number>('REDIS_PORT', 6379),
+          port: Number(configService.get('REDIS_PORT') || 6380),
+          maxRetriesPerRequest: null,
         },
       }),
       inject: [ConfigService],

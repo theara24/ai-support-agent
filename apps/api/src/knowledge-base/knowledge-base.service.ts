@@ -35,34 +35,35 @@ export class KnowledgeBaseService {
       },
     });
 
-    // 2. Dispatch job to BullMQ Redis Queue (Non-blocking HTTP return)
-    try {
-      await this.documentQueue.add(
-        'process-document',
-        {
-          documentId: doc.id,
-          title: dto.title,
-          content: dto.content,
-        },
-        {
-          attempts: 3,
-          backoff: {
-            type: 'exponential',
-            delay: 1000,
-          },
-          removeOnComplete: true,
-        },
-      );
-      this.logger.log(`Enqueued document processing job for document ${doc.id}`);
-    } catch (err: any) {
-      this.logger.warn(`Failed enqueuing job to BullMQ Redis, processing synchronously fallback: ${err.message}`);
-      // Fallback synchronous processing if Redis is unconfigured or offline
-      await this.processSynchronousFallback(doc.id, dto.content);
-    }
+    // 2. Dispatch to BullMQ with 1s timeout race to synchronous fallback
+    const addPromise = this.documentQueue.add(
+      'process-document',
+      {
+        documentId: doc.id,
+        title: dto.title,
+        content: dto.content,
+      },
+      {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 1000 },
+        removeOnComplete: true,
+      },
+    );
 
-    return this.prisma.knowledgeDocument.findUnique({
-      where: { id: doc.id },
-    });
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('BullMQ Redis enqueue timeout')), 1000),
+    );
+
+    Promise.race([addPromise, timeoutPromise])
+      .then(() => {
+        this.logger.log(`Enqueued document processing job for document ${doc.id}`);
+      })
+      .catch((err: any) => {
+        this.logger.warn(`BullMQ enqueue fallback triggered (${err.message}). Processing document...`);
+        this.processSynchronousFallback(doc.id, dto.content);
+      });
+
+    return doc;
   }
 
   private async processSynchronousFallback(documentId: string, content: string) {

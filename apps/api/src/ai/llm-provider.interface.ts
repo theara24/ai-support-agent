@@ -2,6 +2,7 @@ import { LLMMessage, LLMResponse, LLMToolDefinition } from '@ai-support/types';
 
 export interface LLMProvider {
   readonly providerName: string;
+  readonly modelName?: string;
 
   generateChatCompletion(options: {
     messages: LLMMessage[];

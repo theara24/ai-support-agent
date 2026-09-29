@@ -5,6 +5,7 @@ import { EscalateToHumanTool } from './implementations/escalate-to-human.tool';
 import { CreateSupportTicketTool } from './implementations/create-support-ticket.tool';
 import { GetCustomerProfileTool } from './implementations/get-customer-profile.tool';
 import { GetOrderStatusTool } from './implementations/get-order-status.tool';
+import { GetCurrentTimeTool } from './implementations/get-current-time.tool';
 import { LLMToolDefinition } from '@ai-support/types';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -19,6 +20,7 @@ export class ToolRegistryService {
     private createSupportTicketTool: CreateSupportTicketTool,
     private getCustomerProfileTool: GetCustomerProfileTool,
     private getOrderStatusTool: GetOrderStatusTool,
+    private getCurrentTimeTool: GetCurrentTimeTool,
     private prisma: PrismaService,
   ) {
     this.registerTool(searchKnowledgeBaseTool);
@@ -26,6 +28,7 @@ export class ToolRegistryService {
     this.registerTool(createSupportTicketTool);
     this.registerTool(getCustomerProfileTool);
     this.registerTool(getOrderStatusTool);
+    this.registerTool(getCurrentTimeTool);
   }
 
   registerTool(tool: IAgentTool) {

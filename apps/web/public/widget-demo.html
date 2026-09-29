@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Universal AI Support - Multi-Tenant Widget Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #f8fafc; color: #1e293b; line-height: 1.6; }
+    header { background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 1.25rem 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .brand { font-size: 1.25rem; font-weight: 700; color: #0284c7; display: flex; align-items: center; gap: 0.5rem; }
+    .badge { font-size: 0.75rem; background: #e0f2fe; color: #0369a1; padding: 0.2rem 0.6rem; border-radius: 9999px; font-weight: 600; }
+    nav a { margin-left: 1.5rem; color: #64748b; text-decoration: none; font-size: 0.9rem; font-weight: 500; }
+    nav a:hover { color: #0f172a; }
+    .hero { max-width: 900px; margin: 3.5rem auto 2rem; text-align: center; padding: 0 1.5rem; }
+    .hero h1 { font-size: 2.75rem; font-weight: 800; color: #0f172a; margin-bottom: 1rem; line-height: 1.2; }
+    .hero p { font-size: 1.15rem; color: #64748b; margin-bottom: 2rem; }
+    
+    .demo-bar { max-width: 900px; margin: 0 auto 3rem; background: white; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+    .demo-label { font-size: 0.85rem; font-weight: 700; color: #334155; }
+    .demo-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .demo-btn { padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .demo-btn:hover { background: #e2e8f0; }
+    .demo-btn.active { background: #0284c7; color: white; border-color: #0284c7; }
+
+    .instructions { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 0.75rem; padding: 1.5rem; max-width: 900px; margin: 2rem auto; text-align: left; }
+    .instructions h2 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; color: #0f172a; }
+    pre { background: #0f172a; color: #e2e8f0; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.85rem; margin-top: 0.75rem; }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; max-width: 1000px; margin: 3rem auto; padding: 0 1.5rem; }
+    .card { background: white; padding: 1.75rem; border-radius: 1rem; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .card h3 { font-size: 1.15rem; color: #0f172a; margin-bottom: 0.5rem; }
+    .card p { font-size: 0.9rem; color: #64748b; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <span>🌐 Universal Support Agent</span>
+      <span class="badge">Multi-Tenant Platform</span>
+    </div>
+    <nav>
+      <a href="http://localhost:3002/dashboard">Agent Portal</a>
+      <a href="http://localhost:3002/knowledge-base">Knowledge Base (RAG)</a>
+      <a href="http://localhost:3002/widget-config">Widget Builder</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>Universal AI Customer Assistant</h1>
+      <p>
+        Deploy intelligent customer support for any university, hospital, enterprise, or retail store with custom knowledge base grounding and dynamic quick questions.
+      </p>
+    </section>
+
+    <div class="demo-bar">
+      <span class="demo-label">✨ Switch Business Demo:</span>
+      <div class="demo-buttons">
+        <button class="demo-btn active" onclick="loadWidget('general')">🏢 Corporate</button>
+        <button class="demo-btn" onclick="loadWidget('university')">🎓 University</button>
+        <button class="demo-btn" onclick="loadWidget('clinic')">🏥 Clinic / Medical</button>
+        <button class="demo-btn" onclick="loadWidget('retail')">🛍️ Retail Store</button>
+      </div>
+    </div>
+
+    <div class="instructions">
+      <h2>How To Embed On Any Client's Website</h2>
+      <p style="font-size: 0.9rem; color: #475569;">
+        Copy this single &lt;script&gt; tag before the closing &lt;/body&gt; tag of any website:
+      </p>
+      <pre><code id="embedSnippet">&lt;script
+  src="http://localhost:3002/widget.js"
+  data-bot-name="Nexus Support AI"
+  data-company="Nexus Solutions"
+  data-primary-color="#0284c7"
+  data-quick-questions="What services do you offer?;How do I contact sales or support?;What are your hours?"
+  data-web-url="http://localhost:3002"
+  defer&gt;
+&lt;/script&gt;</code></pre>
+    </div>
+
+    <section class="cards">
+      <div class="card">
+        <h3>🧠 Grounded Vector RAG</h3>
+        <p>Organization-isolated Knowledge Base searches docs, schedules, FAQs, and price lists.</p>
+      </div>
+      <div class="card">
+        <h3>⚡ Real-Time Socket.IO</h3>
+        <p>Instant bi-directional messaging, human agent takeover, typing indicators, and delivery status.</p>
+      </div>
+      <div class="card">
+        <h3>⚙️ Multi-Tenant Customization</h3>
+        <p>Custom colors, starter questions, brand names, and bot personas configured without writing code.</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="widgetContainer"></div>
+
+  <script>
+    const DEMO_PRESETS = {
+      general: {
+        botName: 'Nexus Support AI',
+        company: 'Nexus Solutions',
+        color: '#0284c7',
+        greeting: 'Welcome! How can our support team assist you today?',
+        questions: 'What services or solutions do you offer?;How do I contact sales or human support?;What are your business hours and location?'
+      },
+      university: {
+        botName: 'Admissions Assistant',
+        company: 'Angkor University',
+        color: '#4f46e5',
+        greeting: 'Hello! I am here to help you with academic programs, enrollment, and campus life.',
+        questions: 'What undergraduate programs do you offer?;How much is tuition & admission fees?;How can I apply for a scholarship?'
+      },
+      clinic: {
+        botName: 'Clinic Concierge',
+        company: 'CarePlus Medical',
+        color: '#059669',
+        greeting: 'Welcome to CarePlus Clinic. How can we help your wellness today?',
+        questions: 'What medical specialties are available?;How do I book a doctor appointment?;What are your opening hours & emergency contact?'
+      },
+      retail: {
+        botName: 'Shopping Assistant',
+        company: 'Zando Express',
+        color: '#e11d48',
+        greeting: 'Hi there! Looking for deals, sizing advice, or tracking an order?',
+        questions: 'Where is my order status?;What is your 30-day return policy?;What payment methods are supported?'
+      }
+    };
+
+    function loadWidget(type) {
+      document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+      const activeBtn = event ? event.target : null;
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const preset = DEMO_PRESETS[type] || DEMO_PRESETS.general;
+
+      document.getElementById('embedSnippet').textContent = `<script
+  src="http://localhost:3002/widget.js"
+  data-bot-name="${preset.botName}"
+  data-company="${preset.company}"
+  data-primary-color="${preset.color}"
+  data-greeting="${preset.greeting}"
+  data-quick-questions="${preset.questions}"
+  data-web-url="http://localhost:3002"
+  defer>
+<\/script>`;
+
+      // Clean existing widget elements if any
+      document.querySelectorAll('.ai-support-widget-bubble, .ai-support-widget-frame').forEach(el => el.remove());
+      window.__AI_SUPPORT_WIDGET_INITIALIZED__ = false;
+
+      // Re-inject script
+      const script = document.createElement('script');
+      script.src = 'http://localhost:3002/widget.js';
+      script.setAttribute('data-bot-name', preset.botName);
+      script.setAttribute('data-company', preset.company);
+      script.setAttribute('data-primary-color', preset.color);
+      script.setAttribute('data-greeting', preset.greeting);
+      script.setAttribute('data-quick-questions', preset.questions);
+      script.setAttribute('data-web-url', 'http://localhost:3002');
+      script.defer = true;
+      document.body.appendChild(script);
+    }
+
+    // Initialize with general preset
+    loadWidget('general');
+  </script>
+
+</body>
+</html>

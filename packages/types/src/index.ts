@@ -61,6 +61,22 @@ export enum DocumentStatus {
   FAILED = 'FAILED'
 }
 
+export enum IntentCategory {
+  GENERAL = 'GENERAL',
+  BUSINESS_KNOWLEDGE = 'BUSINESS_KNOWLEDGE',
+  TOOL_ACTION = 'TOOL_ACTION',
+  HUMAN_HANDOFF = 'HUMAN_HANDOFF',
+  MIXED = 'MIXED',
+}
+
+export interface IntentClassification {
+  category: IntentCategory;
+  requiresRag: boolean;
+  suggestedTools?: string[];
+  confidence?: number;
+  reasoning?: string;
+}
+
 export interface JwtPayload {
   sub: string;
   email: string;

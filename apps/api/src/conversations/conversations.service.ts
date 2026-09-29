@@ -1,19 +1,32 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiAgentService } from '../ai/ai-agent.service';
+import { MessagesGateway } from '../messages/messages.gateway';
+import { TelegramService } from '../telegram/telegram.service';
 import {
   CreateConversationDto,
   UpdateConversationStatusDto,
   AssignAgentDto,
   CreateMessageDto,
 } from './dto/conversation.dto';
-import { ConversationStatus, MessageSenderType, ConversationChannel } from '@ai-support/types';
+import {
+  ConversationStatus,
+  MessageSenderType,
+  ConversationChannel,
+  AuthenticatedUser,
+  UserRole,
+} from '@ai-support/types';
 
 @Injectable()
 export class ConversationsService {
+  private readonly logger = new Logger(ConversationsService.name);
+
   constructor(
     private prisma: PrismaService,
     private aiAgentService: AiAgentService,
+    private messagesGateway: MessagesGateway,
+    @Inject(forwardRef(() => TelegramService))
+    private telegramService: TelegramService,
   ) {}
 
   async create(dto: CreateConversationDto, orgId?: string) {
@@ -30,7 +43,7 @@ export class ConversationsService {
       customerId = customer.id;
     }
 
-    return this.prisma.conversation.create({
+    const conversation = await this.prisma.conversation.create({
       data: {
         channel: dto.channel || ConversationChannel.WEB,
         status: ConversationStatus.AI_ACTIVE,
@@ -47,6 +60,10 @@ export class ConversationsService {
         },
       },
     });
+
+    this.messagesGateway.emitStatusChange(conversation.id, conversation.status);
+
+    return conversation;
   }
 
   async findAll(status?: ConversationStatus, channel?: ConversationChannel, orgId?: string) {
@@ -54,7 +71,11 @@ export class ConversationsService {
       where: {
         ...(status ? { status } : {}),
         ...(channel ? { channel } : {}),
-        ...(orgId ? { organizationId: orgId } : {}),
+        ...(orgId
+          ? {
+              OR: [{ organizationId: orgId }, { organizationId: null }],
+            }
+          : {}),
       },
       include: {
         customer: true,
@@ -70,7 +91,7 @@ export class ConversationsService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user?: AuthenticatedUser) {
     const conversation = await this.prisma.conversation.findUnique({
       where: { id },
       include: {
@@ -89,11 +110,37 @@ export class ConversationsService {
       throw new NotFoundException(`Conversation with ID ${id} not found`);
     }
 
+    // Security check: non-agents (or anonymous web customers) must not see internal notes
+    const isAgent =
+      user &&
+      (user.role === UserRole.SUPPORT_AGENT ||
+        user.role === UserRole.ADMIN ||
+        user.role === UserRole.SUPER_ADMIN);
+
+    if (!isAgent) {
+      return {
+        ...conversation,
+        messages: conversation.messages.filter((m) => !m.isInternalNote),
+      };
+    }
+
     return conversation;
   }
 
-  async addMessage(conversationId: string, dto: CreateMessageDto, senderType: MessageSenderType, senderId?: string) {
-    const conversation = await this.findOne(conversationId);
+  async addMessage(
+    conversationId: string,
+    dto: CreateMessageDto,
+    senderType: MessageSenderType,
+    senderId?: string,
+    skipAiAutoTrigger = false,
+  ) {
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
+
+    if (!conversation) {
+      throw new NotFoundException(`Conversation with ID ${conversationId} not found`);
+    }
 
     const message = await this.prisma.message.create({
       data: {
@@ -111,20 +158,55 @@ export class ConversationsService {
       data: { updatedAt: new Date() },
     });
 
+    // Real-Time Socket.IO broadcast
+    this.messagesGateway.emitNewMessage(conversationId, message);
+
     // If message is from customer and AI is active & not an internal note, trigger AI Agent
-    if (senderType === MessageSenderType.CUSTOMER && conversation.status === ConversationStatus.AI_ACTIVE && !dto.isInternalNote) {
-      // Trigger AI Agent asynchronously
-      this.aiAgentService.processIncomingMessage(conversationId, dto.content).catch((err) => {
-        console.error('AI Agent error processing message:', err);
-      });
+    if (
+      !skipAiAutoTrigger &&
+      senderType === MessageSenderType.CUSTOMER &&
+      conversation.status === ConversationStatus.AI_ACTIVE &&
+      !dto.isInternalNote
+    ) {
+      this.messagesGateway.emitTyping(conversationId, true, 'AI Assistant');
+      this.aiAgentService
+        .processIncomingMessage(conversationId, dto.content)
+        .catch((err) => {
+          console.error('AI Agent error processing message:', err);
+        })
+        .finally(() => {
+          this.messagesGateway.emitTyping(conversationId, false, 'AI Assistant');
+        });
+    }
+
+    // If human agent replied to a Telegram customer, forward message back to Telegram app
+    if (
+      senderType === MessageSenderType.AGENT &&
+      !dto.isInternalNote &&
+      conversation.channel === ConversationChannel.TELEGRAM
+    ) {
+      this.prisma.customer
+        .findUnique({ where: { id: conversation.customerId } })
+        .then((cust) => {
+          if (cust?.telegramChatId) {
+            this.telegramService.sendTelegramMessage(cust.telegramChatId, dto.content);
+          }
+        })
+        .catch((err) => {
+          this.logger.warn(`Failed forwarding agent message to Telegram: ${err.message}`);
+        });
     }
 
     return message;
   }
 
   async updateStatus(id: string, dto: UpdateConversationStatusDto) {
-    await this.findOne(id);
-    return this.prisma.conversation.update({
+    const existing = await this.prisma.conversation.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`Conversation with ID ${id} not found`);
+    }
+
+    const updated = await this.prisma.conversation.update({
       where: { id },
       data: { status: dto.status },
       include: {
@@ -134,10 +216,17 @@ export class ConversationsService {
         },
       },
     });
+
+    this.messagesGateway.emitStatusChange(id, dto.status);
+
+    return updated;
   }
 
   async takeover(id: string, agentId: string) {
-    await this.findOne(id);
+    const existing = await this.prisma.conversation.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`Conversation with ID ${id} not found`);
+    }
 
     const updated = await this.prisma.conversation.update({
       where: { id },
@@ -154,7 +243,7 @@ export class ConversationsService {
     });
 
     // Post internal system note regarding takeover
-    await this.prisma.message.create({
+    const systemNote = await this.prisma.message.create({
       data: {
         conversationId: id,
         senderType: MessageSenderType.SYSTEM,
@@ -163,12 +252,19 @@ export class ConversationsService {
       },
     });
 
+    this.messagesGateway.emitStatusChange(id, ConversationStatus.HUMAN_ACTIVE);
+    this.messagesGateway.emitNewMessage(id, systemNote);
+
     return updated;
   }
 
   async assignAgent(id: string, dto: AssignAgentDto) {
-    await this.findOne(id);
-    return this.prisma.conversation.update({
+    const existing = await this.prisma.conversation.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`Conversation with ID ${id} not found`);
+    }
+
+    const updated = await this.prisma.conversation.update({
       where: { id },
       data: { assignedAgentId: dto.agentId },
       include: {
@@ -178,5 +274,9 @@ export class ConversationsService {
         },
       },
     });
+
+    this.messagesGateway.emitStatusChange(id, existing.status);
+
+    return updated;
   }
 }

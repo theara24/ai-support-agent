@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -15,6 +16,10 @@ module.exports = {
           600: '#0284c7',
           700: '#0369a1',
         },
+      },
+      fontFamily: {
+        sans: ['var(--font-sans)', 'var(--font-khmer)', 'Plus Jakarta Sans', 'Kantumruy Pro', 'system-ui', 'sans-serif'],
+        khmer: ['var(--font-khmer)', 'Kantumruy Pro', 'sans-serif'],
       },
     },
   },

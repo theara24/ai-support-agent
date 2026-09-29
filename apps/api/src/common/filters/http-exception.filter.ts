@@ -46,6 +46,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       this.logger.warn(`[${request.method}] ${request.url} - Status: ${status} - ${JSON.stringify(errorMessage)}`);
     }
 
+    const requestId = (request as any).requestId || request.headers['x-request-id'];
+
     response.status(status).json({
       success: false,
       error: {
@@ -53,6 +55,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         message: Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage,
         timestamp: new Date().toISOString(),
         path: request.url,
+        ...(requestId ? { requestId } : {}),
       },
     });
   }
