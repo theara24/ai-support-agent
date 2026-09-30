@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  // On Vercel, serverless output is managed natively. In Docker/standalone environments, use 'standalone'.
+  output: process.env.VERCEL ? undefined : 'standalone',
   reactStrictMode: true,
   poweredByHeader: false,
   experimental: {

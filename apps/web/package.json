@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3002",
+    "prebuild": "npm run build --prefix ../../packages/types --if-present && npm run build --prefix ../../packages/shared --if-present",
     "build": "prisma generate && next build",
     "start": "next start -p 3002",
     "lint": "next lint",

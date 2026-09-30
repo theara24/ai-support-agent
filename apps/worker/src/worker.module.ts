@@ -10,13 +10,26 @@ import { DocumentProcessorService } from './document-processor.service';
       envFilePath: ['.env', '.env.local'],
     }),
     BullModule.forRootAsync({
-      useFactory: (configService: ConfigService) => ({
-        connection: {
-          host: configService.get<string>('REDIS_HOST', 'localhost'),
-          port: Number(configService.get('REDIS_PORT') || 6380),
-          maxRetriesPerRequest: null,
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const redisUrl = configService.get<string>('REDIS_URL');
+        if (redisUrl) {
+          return {
+            connection: {
+              url: redisUrl,
+              maxRetriesPerRequest: null,
+              tls: redisUrl.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
+            },
+          };
+        }
+        return {
+          connection: {
+            host: configService.get<string>('REDIS_HOST', 'localhost'),
+            port: Number(configService.get('REDIS_PORT') || 6380),
+            password: configService.get<string>('REDIS_PASSWORD') || undefined,
+            maxRetriesPerRequest: null,
+          },
+        };
+      },
       inject: [ConfigService],
     }),
     BullModule.registerQueue({

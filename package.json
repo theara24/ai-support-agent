@@ -23,6 +23,7 @@
     "docker:down": "docker compose down",
     "prisma:generate": "npm run prisma:generate --workspace=apps/api",
     "prisma:migrate": "npm run prisma:migrate --workspace=apps/api",
+    "prisma:migrate:deploy": "npm run prisma:migrate:deploy --workspace=apps/api",
     "prisma:studio": "npm run prisma:studio --workspace=apps/api",
     "db:seed": "npm run db:seed --workspace=apps/api"
   },

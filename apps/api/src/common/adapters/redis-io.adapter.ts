@@ -15,35 +15,54 @@ export class RedisIoAdapter extends IoAdapter {
       const port = Number(configService.get<number>('REDIS_PORT', 6380));
       const password = configService.get<string>('REDIS_PASSWORD');
 
-      // Only attempt Redis connection if REDIS_HOST or REDIS_URL is explicitly set to a non-default remote host
+      const redisUrl = configService.get<string>('REDIS_URL');
       const isRedisConfigured =
         Boolean(configService.get<string>('REDIS_HOST')) ||
-        Boolean(configService.get<string>('REDIS_URL'));
+        Boolean(redisUrl);
 
       if (!isRedisConfigured) {
         this.logger.log('ℹ️ Redis not configured. Using high-performance in-memory Socket.IO adapter.');
         return false;
       }
 
-      const pubClient = new Redis({
-        host,
-        port,
-        password: password || undefined,
-        connectTimeout: 2000,
-        maxRetriesPerRequest: 1,
-        lazyConnect: true,
-        retryStrategy: () => null, // Do not endlessly reconnect if Redis is down
-      });
+      let pubClient: Redis;
+      let subClient: Redis;
 
-      const subClient = new Redis({
-        host,
-        port,
-        password: password || undefined,
-        connectTimeout: 2000,
-        maxRetriesPerRequest: 1,
-        lazyConnect: true,
-        retryStrategy: () => null,
-      });
+      if (redisUrl) {
+        const redisOptions: any = {
+          connectTimeout: 5000,
+          maxRetriesPerRequest: 1,
+          lazyConnect: true,
+          retryStrategy: () => null,
+        };
+        if (redisUrl.startsWith('rediss://')) {
+          redisOptions.tls = { rejectUnauthorized: false };
+        }
+        pubClient = new Redis(redisUrl, redisOptions);
+        subClient = new Redis(redisUrl, redisOptions);
+      } else {
+        const host = configService.get<string>('REDIS_HOST', 'localhost');
+        const port = Number(configService.get<number>('REDIS_PORT', 6380));
+        const password = configService.get<string>('REDIS_PASSWORD');
+        pubClient = new Redis({
+          host,
+          port,
+          password: password || undefined,
+          connectTimeout: 2000,
+          maxRetriesPerRequest: 1,
+          lazyConnect: true,
+          retryStrategy: () => null, // Do not endlessly reconnect if Redis is down
+        });
+        subClient = new Redis({
+          host,
+          port,
+          password: password || undefined,
+          connectTimeout: 2000,
+          maxRetriesPerRequest: 1,
+          lazyConnect: true,
+          retryStrategy: () => null,
+        });
+      }
 
       pubClient.on('error', (err) => {
         this.logger.warn(`Redis PubClient error: ${err.message}`);
@@ -55,7 +74,7 @@ export class RedisIoAdapter extends IoAdapter {
       await Promise.all([pubClient.connect(), subClient.connect()]);
 
       this.adapterConstructor = createAdapter(pubClient, subClient);
-      this.logger.log(`✅ Socket.IO Redis adapter connected successfully (${host}:${port})`);
+      this.logger.log(`✅ Socket.IO Redis adapter connected successfully`);
       return true;
     } catch (err: any) {
       this.logger.warn(
