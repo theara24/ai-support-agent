@@ -4,15 +4,14 @@ function getApiBaseUrl(): string {
     const isLocal =
       window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     if (!isLocal) {
-      // If deployed on Vercel or public domain, only use NEXT_PUBLIC_API_URL if it's a valid remote HTTPS URL
+      // If deployed on Vercel or public domain, use configured URL or production Render backend
       if (envUrl && envUrl.startsWith('https://') && !envUrl.includes('localhost')) {
         return envUrl;
       }
-      // Otherwise, use same-origin relative URLs (/api/...)
-      return '';
+      return 'https://theara-ai-support-api.onrender.com';
     }
   }
-  return envUrl || '';
+  return envUrl || 'https://theara-ai-support-api.onrender.com';
 }
 
 export interface ApiErrorResponse {

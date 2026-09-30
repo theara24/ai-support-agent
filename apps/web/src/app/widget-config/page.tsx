@@ -147,7 +147,7 @@ export default function WidgetConfigPage() {
   }, []);
 
   // Compute origin
-  const webOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3002';
+  const webOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://theara-ai-support-agent.vercel.app';
 
   const handleApplyPreset = (preset: IndustryPreset) => {
     setSelectedIndustry(preset.id);

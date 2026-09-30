@@ -19,7 +19,7 @@
     })();
 
   const scriptSrc = currentScript ? currentScript.src : '';
-  let defaultOrigin = 'http://localhost:3002';
+  let defaultOrigin = 'https://theara-ai-support-agent.vercel.app';
   try {
     if (scriptSrc) {
       const url = new URL(scriptSrc);

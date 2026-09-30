@@ -11,15 +11,15 @@ dotenv.config();
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting Acme Support Platform Demo Seeding...');
+  console.log('🌱 Starting Theara AI Support Platform Production Seeding...');
 
   // 1. Organization
   const org = await prisma.organization.upsert({
-    where: { slug: 'acme-support' },
-    update: { name: 'Acme Support Inc.' },
+    where: { slug: 'theara-ai-support' },
+    update: { name: 'Theara AI Support' },
     create: {
-      name: 'Acme Support Inc.',
-      slug: 'acme-support',
+      name: 'Theara AI Support',
+      slug: 'theara-ai-support',
     },
   });
   console.log(`✅ Organization created/verified: ${org.name} (${org.id})`);

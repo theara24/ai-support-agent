@@ -35,7 +35,7 @@ export default function WidgetChatPage() {
 
   // Customization parameters from query string
   const [botName, setBotName] = useState<string>('Support Assistant');
-  const [companyName, setCompanyName] = useState<string>('Acme Corp');
+  const [companyName, setCompanyName] = useState<string>('Support Team');
   const [primaryColor, setPrimaryColor] = useState<string>('#0284c7');
   const [greeting, setGreeting] = useState<string>('Hi there! How can I help you today?');
   const [quickQuestions, setQuickQuestions] = useState<string[]>([
@@ -76,7 +76,7 @@ export default function WidgetChatPage() {
         document.documentElement.classList.remove('dark');
       }
 
-      const savedId = localStorage.getItem('acme_widget_conversation_id');
+      const savedId = localStorage.getItem('ai_widget_conversation_id');
       if (savedId) {
         setConversationId(savedId);
         loadConversation(savedId);
@@ -94,7 +94,7 @@ export default function WidgetChatPage() {
         }
       }
     } catch {
-      localStorage.removeItem('acme_widget_conversation_id');
+      localStorage.removeItem('ai_widget_conversation_id');
       setConversationId(null);
     }
   };
@@ -165,7 +165,7 @@ export default function WidgetChatPage() {
   }, [messages, isTyping]);
 
   const handleResetChat = () => {
-    localStorage.removeItem('acme_widget_conversation_id');
+    localStorage.removeItem('ai_widget_conversation_id');
     setConversationId(null);
     setMessages([]);
     setConversationStatus('AI_ACTIVE');
@@ -231,7 +231,7 @@ export default function WidgetChatPage() {
         });
         activeId = createRes.data.id;
         setConversationId(activeId);
-        localStorage.setItem('acme_widget_conversation_id', activeId!);
+        localStorage.setItem('ai_widget_conversation_id', activeId!);
       }
 
       const tempUserMsg: ChatMessage = {

@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   creator: 'Chim Theara (ជឺម ធារ៉ា)',
   publisher: 'Chim Theara (ជឺម ធារ៉ា)',
   applicationName: 'Theara AI Support Platform',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://theara-ai-support-agent.vercel.app'),
   openGraph: {
     title: 'Theara AI Support - Smart AI Customer Assistant',
     description:

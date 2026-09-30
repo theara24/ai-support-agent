@@ -82,7 +82,7 @@ export default function ConversationsPage() {
       text:
         language === 'km'
           ? 'សូមមេត្តាផ្តល់លេខសម្គាល់ការបញ្ជាទិញ (Order ID) របស់លោកអ្នកដើម្បីឱ្យខ្ញុំជួយពិនិត្យស្ថានភាពបច្ចុប្បន្ន។'
-          : 'Could you please provide your Order ID (e.g. ACME-1001) so I can pull up the latest status?',
+          : 'Could you please provide your Order ID (e.g. ORD-1001) so I can pull up the latest status?',
     },
     {
       label: t('canned.refund'),
@@ -377,7 +377,7 @@ export default function ConversationsPage() {
     if (!conv) return;
     const msgs = conv.messages || [];
     const transcriptText = [
-      `=== ACME SUPPORT CONVERSATION TRANSCRIPT ===`,
+      `=== AI SUPPORT CONVERSATION TRANSCRIPT ===`,
       `Conversation ID: ${conv.id}`,
       `Customer: ${conv.customer?.name || 'Anonymous'} (${conv.channel})`,
       `Date: ${new Date(conv.createdAt).toLocaleString()}`,

@@ -1,6 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 
-const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_API_URL || 'https://theara-ai-support-api.onrender.com';
 
 let socket: Socket | null = null;
 

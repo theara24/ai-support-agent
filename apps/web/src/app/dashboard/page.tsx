@@ -850,7 +850,7 @@ export default function DashboardPage() {
 
             <div className="flex flex-wrap gap-3">
               <a
-                href="http://localhost:3000/docs"
+                href={`${process.env.NEXT_PUBLIC_API_URL || 'https://theara-ai-support-api.onrender.com'}/docs`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl border border-slate-700 shadow-xs transition-colors"
@@ -860,7 +860,7 @@ export default function DashboardPage() {
               </a>
 
               <a
-                href="http://localhost:3000/api/v1/health"
+                href={`${process.env.NEXT_PUBLIC_API_URL || 'https://theara-ai-support-api.onrender.com'}/health`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 transition-colors"

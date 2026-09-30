@@ -97,7 +97,7 @@ export default function Sidebar() {
     (user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : null) ||
     user?.email?.split('@')[0] ||
     (isSuperAdmin ? 'Super Admin' : 'Support Agent');
-  const displayEmail = user?.email || (isSuperAdmin ? 'admin@acme-support.local' : 'agent@company.com');
+  const displayEmail = user?.email || (isSuperAdmin ? 'admin@theara-ai.support' : 'agent@theara-ai.support');
   const initials = displayName
     .split(' ')
     .map((n) => n[0])

@@ -10,6 +10,7 @@ export function getCorsOrigins(): string[] {
   }
 
   const origins = [
+    'https://theara-ai-support-agent.vercel.app',
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:3002',
