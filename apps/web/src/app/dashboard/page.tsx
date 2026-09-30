@@ -350,18 +350,24 @@ export default function DashboardPage() {
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {isSuperAdmin ? 'Platform Control Center' : 'Support Overview'}
+              {isSuperAdmin
+                ? 'Platform Control Center'
+                : `${(user as any)?.organizationName || 'Workspace'} AI Control Center`}
             </h1>
-            {isSuperAdmin && (
+            {isSuperAdmin ? (
               <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800 tracking-wide">
                 👑 SUPER ADMIN
+              </span>
+            ) : (
+              <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 tracking-wide">
+                🏢 WORKSPACE ADMIN: {((user as any)?.organizationName || 'PORTFOLIO').toUpperCase()}
               </span>
             )}
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             {isSuperAdmin
               ? 'Multi-tenant organization approvals, tenant bug reports, system health, and global analytics.'
-              : 'Real-time AI metrics, human handoffs, and operational overview.'}
+              : `Welcome back, ${(user as any)?.firstName || 'Admin'}! Manage your AI assistant, knowledge base documents, and customer tickets.`}
           </p>
         </div>
 

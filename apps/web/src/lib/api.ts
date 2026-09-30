@@ -1,4 +1,19 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+function getApiBaseUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (typeof window !== 'undefined') {
+    const isLocal =
+      window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (!isLocal) {
+      // If deployed on Vercel or public domain, only use NEXT_PUBLIC_API_URL if it's a valid remote HTTPS URL
+      if (envUrl && envUrl.startsWith('https://') && !envUrl.includes('localhost')) {
+        return envUrl;
+      }
+      // Otherwise, use same-origin relative URLs (/api/...)
+      return '';
+    }
+  }
+  return envUrl || '';
+}
 
 export interface ApiErrorResponse {
   message: string;
@@ -40,10 +55,11 @@ export async function apiFetch<T = any>(
   isRetry = false
 ): Promise<T> {
   const { skipAuth, ...fetchOptions } = options;
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-  
+  const baseUrl = getApiBaseUrl();
+  const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
+
   const headers = new Headers(fetchOptions.headers || {});
-  
+
   if (!skipAuth && typeof window !== 'undefined') {
     const token = localStorage.getItem('accessToken');
     if (token && !headers.has('Authorization')) {
@@ -59,14 +75,22 @@ export async function apiFetch<T = any>(
     const res = await fetch(url, { ...fetchOptions, headers });
     const requestId = res.headers.get('x-request-id') || undefined;
 
-    // Handle 401 Unauthorized (Attempt refresh token)
+    // Handle 401 Unauthorized
     if (res.status === 401 && !skipAuth && !isRetry && typeof window !== 'undefined') {
+      const isAuthRoute = endpoint.includes('/auth/');
+      const isOnLoginPage = window.location.pathname === '/login';
+
+      if (isAuthRoute || isOnLoginPage) {
+        const errorData = await res.json().catch(() => null);
+        throw new ApiError(errorData?.error?.message || 'Invalid credentials', 401, requestId);
+      }
+
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
         if (!isRefreshing) {
           isRefreshing = true;
           try {
-            const refreshRes = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+            const refreshRes = await fetch(`${baseUrl}/api/v1/auth/refresh`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ refreshToken }),
@@ -90,10 +114,7 @@ export async function apiFetch<T = any>(
             }
           } catch (err) {
             isRefreshing = false;
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-            localStorage.removeItem('user');
-            window.location.href = '/login';
+            // Throw error without forcing hard window.location.href loop
             throw new ApiError('Session expired. Please log in again.', 401, requestId);
           }
         }
@@ -108,10 +129,6 @@ export async function apiFetch<T = any>(
           });
         });
       } else {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
         throw new ApiError('Unauthorized. Please log in.', 401, requestId);
       }
     }

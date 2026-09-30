@@ -24,7 +24,14 @@ import { ReportIssueModal } from './ReportIssueModal';
 export default function Sidebar() {
   const pathname = usePathname();
   const { t, theme, toggleTheme, language, toggleLanguage } = useApp();
-  const [user, setUser] = useState<{ name?: string; email?: string; role?: string } | null>(null);
+  const [user, setUser] = useState<{
+    name?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    role?: string;
+    organizationName?: string;
+  } | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
@@ -34,7 +41,7 @@ export default function Sidebar() {
   const roleDisplay = isSuperAdmin
     ? { label: '👑 Super Admin', bg: 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border-amber-300 dark:border-amber-800' }
     : isTenantAdmin
-    ? { label: '🏢 Tenant Admin', bg: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800' }
+    ? { label: user?.organizationName ? `🏢 ${user.organizationName} Admin` : '🏢 Tenant Admin', bg: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800' }
     : { label: '🎧 Support Agent', bg: 'bg-sky-100 text-sky-800 dark:bg-sky-950/80 dark:text-sky-300 border-sky-300 dark:border-sky-800' };
 
   const navigation = [
@@ -85,7 +92,11 @@ export default function Sidebar() {
     }
   };
 
-  const displayName = user?.name || user?.email?.split('@')[0] || (isSuperAdmin ? 'Super Admin' : 'Support Agent');
+  const displayName =
+    user?.name ||
+    (user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : null) ||
+    user?.email?.split('@')[0] ||
+    (isSuperAdmin ? 'Super Admin' : 'Support Agent');
   const displayEmail = user?.email || (isSuperAdmin ? 'admin@acme-support.local' : 'agent@company.com');
   const initials = displayName
     .split(' ')
