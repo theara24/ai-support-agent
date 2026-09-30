@@ -15,6 +15,16 @@ export class RedisIoAdapter extends IoAdapter {
       const port = Number(configService.get<number>('REDIS_PORT', 6380));
       const password = configService.get<string>('REDIS_PASSWORD');
 
+      // Only attempt Redis connection if REDIS_HOST or REDIS_URL is explicitly set to a non-default remote host
+      const isRedisConfigured =
+        Boolean(configService.get<string>('REDIS_HOST')) ||
+        Boolean(configService.get<string>('REDIS_URL'));
+
+      if (!isRedisConfigured) {
+        this.logger.log('ℹ️ Redis not configured. Using high-performance in-memory Socket.IO adapter.');
+        return false;
+      }
+
       const pubClient = new Redis({
         host,
         port,
@@ -22,9 +32,18 @@ export class RedisIoAdapter extends IoAdapter {
         connectTimeout: 2000,
         maxRetriesPerRequest: 1,
         lazyConnect: true,
+        retryStrategy: () => null, // Do not endlessly reconnect if Redis is down
       });
 
-      const subClient = pubClient.duplicate();
+      const subClient = new Redis({
+        host,
+        port,
+        password: password || undefined,
+        connectTimeout: 2000,
+        maxRetriesPerRequest: 1,
+        lazyConnect: true,
+        retryStrategy: () => null,
+      });
 
       pubClient.on('error', (err) => {
         this.logger.warn(`Redis PubClient error: ${err.message}`);
@@ -40,7 +59,7 @@ export class RedisIoAdapter extends IoAdapter {
       return true;
     } catch (err: any) {
       this.logger.warn(
-        `⚠️ Redis unavailable for Socket.IO adapter (${err.message}). Falling back to in-memory adapter.`,
+        `⚠️ Redis unavailable for Socket.IO adapter (${err.message}). Using in-memory adapter.`,
       );
       this.adapterConstructor = null;
       return false;
