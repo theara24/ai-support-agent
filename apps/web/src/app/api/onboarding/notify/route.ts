@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { provisionTenantAdmin } from '@/lib/tenant-accounts';
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,6 +25,19 @@ export async function POST(req: NextRequest) {
 
     if (action === 'APPROVE') {
       const password = tempPassword || `Support@${Math.floor(1000 + Math.random() * 9000)}!`;
+
+      // Automatically provision the Organization and Admin account in database & auth store
+      try {
+        await provisionTenantAdmin({
+          email,
+          password,
+          orgName,
+          contactName: contactName || 'Admin User',
+        });
+      } catch (provErr) {
+        console.warn('Auto account provisioning warning:', provErr);
+      }
+
       subject = `🎉 Your AI Assistant Workspace is Approved - ${orgName}`;
 
       textContent = `Hello ${contactName || 'there'},

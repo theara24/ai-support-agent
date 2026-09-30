@@ -46,12 +46,6 @@ export default function LoginPage() {
     setError('');
   };
 
-  const fillCredentials = (em: string, pass: string) => {
-    setEmail(em);
-    setPassword(pass);
-    setError('');
-  };
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
@@ -145,32 +139,6 @@ export default function LoginPage() {
             </div>
           </div>
         )}
-
-        {/* Quick Demo Fill Buttons */}
-        <div className="space-y-1.5">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-            ⚡ Quick-Fill Accounts:
-          </span>
-          <div className="grid grid-cols-2 gap-2 text-[11px]">
-            <button
-              type="button"
-              onClick={() => fillCredentials('chimtheara93@gmail.com', 'Support@6137!')}
-              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-sky-50 dark:hover:bg-sky-950/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-left font-medium transition-colors cursor-pointer"
-            >
-              <strong className="block text-sky-500 font-bold">Theara Chim (Admin)</strong>
-              chimtheara93@gmail.com
-            </button>
-
-            <button
-              type="button"
-              onClick={() => fillCredentials('admin@acme-support.local', 'AdminPass123!')}
-              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-left font-medium transition-colors cursor-pointer"
-            >
-              <strong className="block text-indigo-400 font-bold">Super Admin</strong>
-              admin@acme-support.local
-            </button>
-          </div>
-        </div>
 
         {error && (
           <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-sm p-3.5 rounded-xl flex items-center gap-2.5">
