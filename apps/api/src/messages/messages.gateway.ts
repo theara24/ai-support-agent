@@ -51,14 +51,25 @@ export class MessagesGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       try {
         const token = this.wsJwtGuard.extractToken(socket);
         if (!token) {
-          return next(new Error('Authentication token required'));
+          // Public customer socket (e.g. from website chat widget)
+          socket.data.user = {
+            id: `customer_${socket.id.slice(0, 8)}`,
+            role: UserRole.CUSTOMER,
+            email: 'customer@widget.guest',
+          };
+          return next();
         }
         const user = await this.wsJwtGuard.validateToken(token);
         socket.data.user = user;
         next();
       } catch (err: any) {
-        this.logger.warn(`Unauthorized WebSocket connection rejected: ${err.message}`);
-        next(new Error(`Unauthorized: ${err.message || 'Invalid or missing token'}`));
+        // If an explicit token was provided but failed validation, default to guest customer
+        socket.data.user = {
+          id: `customer_${socket.id.slice(0, 8)}`,
+          role: UserRole.CUSTOMER,
+          email: 'customer@widget.guest',
+        };
+        next();
       }
     });
   }
@@ -72,7 +83,7 @@ export class MessagesGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       return;
     }
     this.logger.log(
-      `Client authenticated & connected: ${client.id} (user: ${user.id}, role: ${user.role}, org: ${user.organizationId || 'none'})`,
+      `Client connected: ${client.id} (user: ${user.id}, role: ${user.role}, org: ${user.organizationId || 'none'})`,
     );
   }
 

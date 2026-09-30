@@ -257,6 +257,23 @@ export default function WidgetChatPage() {
           }
           return prev.map((m) => (m.id === tempUserMsg.id ? res.data : m));
         });
+
+        // Ensure socket is joined to conversation room
+        const socket = getSocket();
+        if (socket.connected) {
+          socket.emit('join:conversation', { conversationId: activeId, role: 'CUSTOMER' });
+        }
+
+        // Smart sync fallback: automatically checks for AI response after 3.5s if socket was delayed
+        setTimeout(async () => {
+          try {
+            const check = await apiFetch(`/api/v1/conversations/${activeId}`, { skipAuth: true });
+            if (check?.data?.messages && check.data.messages.length > 0) {
+              setMessages(check.data.messages);
+              setIsTyping(false);
+            }
+          } catch {}
+        }, 3500);
       }
     } catch (err: any) {
       setIsTyping(false);
