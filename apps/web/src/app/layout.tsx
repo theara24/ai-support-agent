@@ -5,20 +5,18 @@ import AppShell from '@/components/AppShell';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Theara AI Support - Enterprise Autonomous Customer Support Platform',
+    default: 'Theara AI Support - Smart AI Customer Assistant by Chim Theara',
     template: '%s | Theara AI Support',
   },
   description:
-    'Enterprise-grade multilingual AI customer support agent platform engineered by Chim Theara (ជឺម ធារ៉ា). Features multi-tenant workspace isolation, live human agent handoff, intelligent RAG knowledge base indexing, customizable website embed widgets, and Telegram omnichannel automation.',
+    'A personal full-stack AI customer support platform built by Chim Theara (ជឺម ធារ៉ា). Features smart RAG document search, live human agent handoff, embeddable chat widgets, and Telegram bot integration.',
   keywords: [
     'Chim Theara',
     'ជឺម ធារ៉ា',
     'Theara AI Support',
-    'AI Customer Support Agent',
-    'Enterprise AI Platform',
-    'Multilingual Support AI',
+    'AI Customer Support',
+    'Personal AI Project',
     'Khmer AI Support',
-    'Omnichannel Customer Service',
     'RAG Knowledge Base',
     'Next.js 14',
     'NestJS',
@@ -32,19 +30,19 @@ export const metadata: Metadata = {
   applicationName: 'Theara AI Support Platform',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'),
   openGraph: {
-    title: 'Theara AI Support - Enterprise Autonomous Customer Support Platform',
+    title: 'Theara AI Support - Smart AI Customer Assistant',
     description:
-      'Autonomous multilingual AI customer service platform with real-time agent handoff, RAG vector indexing, embeddable widget, and Telegram bot. Architected by Chim Theara (ជឺម ធារ៉ា).',
-    siteName: 'Theara AI Support Agent',
+      'A personal full-stack AI customer support project built by Chim Theara (ជឺម ធារ៉ា). Features RAG knowledge search, live human handoff, and website chat widgets.',
+    siteName: 'Theara AI Support',
     locale: 'km_KH',
     alternateLocale: ['en_US'],
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Theara AI Support - Enterprise AI Customer Support',
+    title: 'Theara AI Support - Smart AI Customer Assistant',
     description:
-      'Enterprise-grade AI customer support platform built by Chim Theara (ជឺម ធារ៉ា).',
+      'A modern AI customer support platform built by Chim Theara (ជឺម ធារ៉ា).',
     creator: '@ChimTheara',
   },
   robots: {

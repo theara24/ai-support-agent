@@ -135,11 +135,11 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <span className="font-extrabold text-lg text-white tracking-tight">Theara AI Support</span>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-950 text-sky-400 border border-sky-800">
-                {isKm ? 'ប្រព័ន្ធសហគ្រាស' : 'Enterprise Platform'}
+                {isKm ? 'គម្រោង AI ផ្ទាល់ខ្លួន' : 'Personal AI Project'}
               </span>
             </div>
             <p className="text-[11px] text-slate-400 hidden sm:block">
-              {isKm ? 'ប្រព័ន្ធ AI Customer Support សម្រាប់គ្រប់ស្ថាប័ន' : 'Enterprise Multi-Tenant AI Support Suite'}
+              {isKm ? 'ប្រព័ន្ធ AI Customer Support បង្កើតឡើងដោយ ជឺម ធារ៉ា' : 'Smart AI Customer Support built by Chim Theara'}
             </p>
           </div>
         </div>
@@ -191,9 +191,9 @@ export default function Home() {
               </>
             ) : (
               <>
-                Autonomous 24/7 AI Customer Support Powered by{' '}
+                Smart 24/7 AI Customer Support Powered by{' '}
                 <span className="bg-gradient-to-r from-sky-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
-                  Enterprise Intelligence
+                  Modern LLMs
                 </span>
               </>
             )}
@@ -201,8 +201,8 @@ export default function Home() {
 
           <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto leading-relaxed">
             {isKm
-              ? 'ដាក់ឱ្យដំណើរការជំនួយការ AI ឆ្លាតវៃដែលយល់ដឹងពីឯកសារ និងសេវាកម្មក្រុមហ៊ុនរបស់អ្នកដោយសុក្រឹត (RAG) ជាមួយការគាំទ្រភាសាខ្មែរយ៉ាងច្បាស់លាស់ ការបញ្ជូនទៅកាន់បុគ្គលិកផ្ទាល់ដោយរលូន និងបង្កប់លើ Website ងាយស្រួលដោយកូដ ១ បន្ទាត់។'
-              : 'Deploy an intelligent customer support assistant grounded strictly in your enterprise knowledge base, policies, and workflows. Seamless human agent handoff, native Khmer and English support, and effortless one-line website embedding.'}
+              ? 'ជំនួយការ AI ឆ្លាតវៃដែលយល់ដឹងពីឯកសារ និងសេវាកម្មអាជីវកម្មរបស់អ្នក (RAG) ជាមួយការគាំទ្រភាសាខ្មែរ និងអង់គ្លេស ការបញ្ជូនទៅកាន់បុគ្គលិកផ្ទាល់ និងបង្កប់លើ Website ងាយស្រួលដោយកូដ ១ បន្ទាត់។'
+              : 'An intelligent AI customer assistant that understands your business documents and FAQs (RAG). Features live agent handoff, Khmer & English support, and easy one-line website embedding.'}
           </p>
 
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -245,12 +245,12 @@ export default function Home() {
               </div>
               <div>
                 <h3 className="font-bold text-sm text-white">
-                  {isKm ? 'សហគ្រាស & សេវាកម្ម (Corporate & SaaS)' : 'Corporate & SaaS'}
+                  {isKm ? 'អាជីវកម្ម & សេវាកម្ម (Business & Tech)' : 'Business & Services'}
                 </h3>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">
                   {isKm
                     ? 'ប្រឹក្សាសេវាកម្ម, ដោះស្រាយបញ្ហាបច្ចេកទេស, និងបង្កើត Support Ticket ស្វ័យប្រវត្តិ។'
-                    : 'Technical support, pricing plans, service inquiries, and live ticket routing for enterprises.'}
+                    : 'Technical help, pricing, service details, and live ticket routing for businesses.'}
                 </p>
               </div>
               <span className="text-[11px] font-semibold text-sky-400 flex items-center gap-1">
@@ -381,12 +381,12 @@ export default function Home() {
           <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 space-y-2">
             <ShieldCheck className="h-6 w-6 text-emerald-400" />
             <h3 className="font-bold text-sm text-white">
-              {isKm ? 'គ្រប់គ្រងតាមឋានានុក្រម (Role-Based Access)' : 'Super Admin Governance'}
+              {isKm ? 'គ្រប់គ្រងតាមតួនាទី (Role-Based Access)' : 'Role Management & Access'}
             </h3>
             <p className="text-xs text-slate-400 leading-relaxed">
               {isKm
-                ? 'Tenant Admin គ្រប់គ្រងបុគ្គលិករបស់ខ្លួន និងកំណត់ Widget ដោយឡែកពីគ្នា ក្រោមការគ្រប់គ្រងសុវត្ថិភាពពី Super Admin។'
-                : 'Approved Tenant Admins control their staff agents and configurations, while platform security and incident reporting remain supervised.'}
+                ? 'បែងចែកសិទ្ធិយ៉ាងច្បាស់លាស់រវាង Super Admin, Tenant Admin, និង Support Agent ដើម្បីភាពងាយស្រួល និងសុវត្ថិភាព។'
+                : 'Clear permission boundaries between Super Admin, Workspace Admin, and Support Agents for simple, secure operations.'}
             </p>
           </div>
         </div>
@@ -395,10 +395,10 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-slate-800/80 py-8 px-6 text-center text-xs text-slate-500 space-y-2">
         <p className="text-slate-400 font-medium">
-          © 2026 Theara AI Support Platform. Architected & Developed by <span className="text-sky-400 font-semibold">Chim Theara (ជឺម ធារ៉ា)</span>.
+          © 2026 Theara AI Support Platform. Built by <span className="text-sky-400 font-semibold">Chim Theara (ជឺម ធារ៉ា)</span>.
         </p>
         <p className="text-[11px] text-slate-500">
-          Enterprise Multilingual AI Customer Support • Multi-Tenant Architecture • Live Human Agent Handoff • RAG Knowledge Base
+          Smart AI Support • Khmer & English • Live Human Handoff • Easy Website Embed
         </p>
       </footer>
 
@@ -492,7 +492,7 @@ export default function Home() {
                       onChange={(e) => setIndustry(e.target.value)}
                       className="w-full border border-slate-700 bg-slate-950 text-white rounded-lg p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500"
                     >
-                      <option value="corporate">🏢 {isKm ? 'សហគ្រាស & សេវាកម្ម' : 'Corporate & Enterprise'}</option>
+                      <option value="corporate">🏢 {isKm ? 'អាជីវកម្ម & សេវាកម្ម' : 'Business & Services'}</option>
                       <option value="education">🎓 {isKm ? 'សាលារៀន & សាកលវិទ្យាល័យ' : 'Education & University'}</option>
                       <option value="healthcare">🏥 {isKm ? 'គ្លីនិក & មន្ទីរពេទ្យ' : 'Healthcare & Clinic'}</option>
                       <option value="retail">🛍️ {isKm ? 'ហាងទំនិញ & អនឡាញ' : 'Retail & E-Commerce'}</option>

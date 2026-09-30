@@ -1,7 +1,7 @@
 # 🤖 Theara AI Support Platform (ប្រព័ន្ធឆ្លើយតបអតិថិជនឆ្លាតវៃ)
 
-**Enterprise Multilingual AI Customer Support Agent & Omnichannel Platform**  
-*Architected and Engineered by [Chim Theara (ជឺម ធារ៉ា)](https://github.com/theara24)*
+**A Personal Full-Stack AI Customer Support Platform**  
+*Built by [Chim Theara (ជឺម ធារ៉ា)](https://github.com/theara24)*
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![NestJS](https://img.shields.io/badge/NestJS-10.0-red?logo=nestjs)](https://nestjs.com/)
@@ -13,7 +13,7 @@
 [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-Flash%20Lite-purple?logo=google)](https://ai.google.dev/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-An **Enterprise Multilingual AI-powered Customer Support & Automation Platform** engineered for businesses, universities, clinics, and organizations. Combines general AI conversation and reasoning, pgvector RAG semantic search, dynamic tool execution, live human agent handoff, multi-tenant widget embedding, Telegram bot omnichannel synchronization, and a modern Next.js 14 control portal.
+A modern, practical **AI Customer Support & Assistant Platform** created to help businesses, schools, clinics, and shops answer customer questions automatically 24/7. Built with modern full-stack technologies combining document search (pgvector RAG), real-time tool calling, live agent handoff via Socket.IO, an embeddable website widget, and Telegram bot integration.
 
 ---
 
