@@ -19,8 +19,13 @@ export class AiAgentService {
     private messagesGateway: MessagesGateway,
   ) {}
 
-  async processIncomingMessage(conversationId: string, userMessageContent: string): Promise<string> {
-    this.logger.log(`Processing AI workflow for conversation: ${conversationId}`);
+  async processIncomingMessage(
+    conversationId: string,
+    userMessageContent: string,
+    correlationId?: string,
+  ): Promise<string> {
+    const traceId = correlationId || `trace-${Date.now()}`;
+    this.logger.log(`[${traceId}] Processing AI workflow for conversation: ${conversationId}`);
 
     // 1. Load conversation & history
     const conversation = await this.prisma.conversation.findUnique({
@@ -70,8 +75,14 @@ export class AiAgentService {
           contextAugmentation =
             `\n\nVerified Knowledge Base Excerpts:\n` +
             kbResults.result.results
-              .map((r: any) => `- [${r.documentTitle}]: ${r.content}`)
-              .join('\n');
+              .map((r: any) => {
+                const chunkLabel =
+                  r.chunkIndex !== undefined && r.chunkIndex !== null
+                    ? ` (Part ${r.chunkIndex + 1})`
+                    : '';
+                return `- Source: [${r.documentTitle}${chunkLabel}]\n  Content: ${r.content}`;
+              })
+              .join('\n\n');
         }
       } catch (e: any) {
         this.logger.warn(`Knowledge base search error during RAG step: ${e.message}`);
@@ -96,15 +107,21 @@ export class AiAgentService {
     const provider = this.providerFactory.getProvider();
     const tools = this.toolRegistry.getToolDefinitions();
 
+    const llmStart = Date.now();
     let llmResponse = await provider.generateChatCompletion({
       messages: historyMessages,
       tools,
       temperature: 0.2,
     });
+    const llmDurationMs = Date.now() - llmStart;
 
     let finalResponseText = llmResponse.content || '';
     let totalPromptTokens = llmResponse.tokenUsage?.promptTokens || 0;
     let totalCompletionTokens = llmResponse.tokenUsage?.completionTokens || 0;
+
+    this.logger.log(
+      `[${traceId}] [LLM Primary] duration: ${llmDurationMs}ms | promptTokens: ${totalPromptTokens} | completionTokens: ${totalCompletionTokens} | totalTokens: ${totalPromptTokens + totalCompletionTokens} | toolsSelected: ${llmResponse.toolCalls?.length || 0}`,
+    );
 
     // 6. Handle Tool Calls & Synthesize Grounded User Responses
     if (llmResponse.toolCalls && llmResponse.toolCalls.length > 0) {
@@ -176,12 +193,15 @@ ${contextAugmentation ? `\nVerified Knowledge Base Excerpts:\n${contextAugmentat
 
 Instructions:
 - Provide a clear, polite, and helpful response directly to the customer answering their question based strictly on the tool result and any verified knowledge excerpts.
+- When answering using verified knowledge excerpts, always cite the source document name.
 - Language Policy (STRICT): If the customer question is in Khmer (ភាសាខ្មែរ), reply ONLY in natural, polite Khmer. NEVER output or mix Thai script, Thai characters, or Thai words (such as สวัสดี, ครับ, ค่ะ, มี, ฯลฯ). Thai is strictly forbidden. If in English, reply in English.`;
 
+            const synthStart = Date.now();
             const synthRes = await provider.generateChatCompletion({
               messages: [{ role: 'user', content: synthesisInstruction }],
               temperature: 0.2,
             });
+            const synthDurationMs = Date.now() - synthStart;
 
             if (synthRes.content) {
               finalResponseText = synthRes.content;
@@ -189,11 +209,18 @@ Instructions:
                 totalPromptTokens += synthRes.tokenUsage.promptTokens;
                 totalCompletionTokens += synthRes.tokenUsage.completionTokens;
               }
+              this.logger.log(
+                `[${traceId}] [LLM Tool Synthesis: ${toolCall.name}] duration: ${synthDurationMs}ms | promptTokens: ${synthRes.tokenUsage?.promptTokens || 0} | completionTokens: ${synthRes.tokenUsage?.completionTokens || 0}`,
+              );
             }
           } catch (synthErr: any) {
             this.logger.warn(`Failed synthesis for ${toolCall.name}: ${synthErr.message}`);
             if (toolCall.name === 'getOrderStatus' && executed.result) {
-              finalResponseText = `Your order ${executed.result.orderId} status is ${executed.result.status}. Carrier: ${executed.result.carrier}, Tracking number: ${executed.result.trackingNumber}. Estimated delivery: ${executed.result.estimatedDelivery}.`;
+              if (executed.result.found === false || executed.result.error) {
+                finalResponseText = `I could not find order "${toolCall.arguments?.orderId || executed.result.orderId}". Please verify your order number and try again.`;
+              } else {
+                finalResponseText = `Your order ${executed.result.orderId} status is ${executed.result.status}. Carrier: ${executed.result.carrier}, Tracking number: ${executed.result.trackingNumber}. Estimated delivery: ${executed.result.estimatedDelivery}.`;
+              }
             }
           }
         }
@@ -233,6 +260,24 @@ Instructions:
     if (!finalResponseText.trim()) {
       finalResponseText =
         'Thank you for reaching out. How else can I assist you today? You can ask general questions, check orders, inquire about policies, or request human support.';
+    }
+
+    // Re-fetch conversation to check for race condition with human agent takeover during LLM generation
+    const freshConversation = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+      select: { status: true },
+    });
+
+    if (
+      !freshConversation ||
+      freshConversation.status === ConversationStatus.HUMAN_ACTIVE ||
+      (freshConversation.status !== ConversationStatus.AI_ACTIVE &&
+        freshConversation.status !== ConversationStatus.WAITING_FOR_AGENT)
+    ) {
+      this.logger.warn(
+        `Race condition detected: Conversation ${conversationId} status transitioned to ${freshConversation?.status || 'NOT_FOUND'} during AI generation (human agent takeover). Discarding AI response.`,
+      );
+      return '';
     }
 
     const totalTokens = totalPromptTokens + totalCompletionTokens;

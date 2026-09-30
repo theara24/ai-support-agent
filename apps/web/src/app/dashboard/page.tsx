@@ -23,6 +23,7 @@ import {
   Send,
   Sparkles,
   Search,
+  Trash2,
 } from 'lucide-react';
 import { apiFetch, ApiError } from '@/lib/api';
 
@@ -42,42 +43,8 @@ export default function DashboardPage() {
   const [user, setUser] = useState<{ name?: string; email?: string; role?: string } | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'onboarding' | 'incidents' | 'infrastructure'>('overview');
 
-  // Initial Onboarding Requests state for Super Admin
-  const [onboardingRequests, setOnboardingRequests] = useState<OnboardingRequest[]>([
-    {
-      id: 'REQ-918231',
-      orgName: 'Angkor University',
-      industry: 'Education & University',
-      contactName: 'Sokha Chan',
-      email: 'admissions@angkor.edu.kh',
-      phone: '+855 12 889 900',
-      notes: 'Need AI Assistant to automate student admissions, tuition inquiries, and scholarship schedules.',
-      status: 'PENDING_REVIEW',
-      createdAt: '2026-09-30 02:15 AM',
-    },
-    {
-      id: 'REQ-723145',
-      orgName: 'CarePlus Medical Clinic',
-      industry: 'Healthcare & Clinic',
-      contactName: 'Dr. Vanna Rath',
-      email: 'contact@careplus.com.kh',
-      phone: '+855 23 999 111',
-      notes: 'Want WhatsApp/Telegram & Web widget for patient appointment bookings and clinic operating hours.',
-      status: 'PENDING_REVIEW',
-      createdAt: '2026-09-29 08:30 PM',
-    },
-    {
-      id: 'REQ-612098',
-      orgName: 'Khmer Heritage Real Estate',
-      industry: 'Custom / Real Estate',
-      contactName: 'Borey Kem',
-      email: 'sales@khmerheritage.com',
-      phone: '+855 77 456 789',
-      notes: 'Customer support for condo listings, property viewing appointments, and installment terms.',
-      status: 'APPROVED',
-      createdAt: '2026-09-28 11:20 AM',
-    },
-  ]);
+  // Onboarding Requests state for Super Admin (loaded from persistent storage, no hardcoded fake demo)
+  const [onboardingRequests, setOnboardingRequests] = useState<OnboardingRequest[]>([]);
 
   const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
 
@@ -96,6 +63,18 @@ export default function DashboardPage() {
         }
       } catch (e) {
         console.error('Failed to parse user info:', e);
+      }
+
+      try {
+        const storedRequests = localStorage.getItem('tenant_onboarding_applications');
+        if (storedRequests) {
+          setOnboardingRequests(JSON.parse(storedRequests));
+        } else {
+          setOnboardingRequests([]);
+        }
+      } catch (e) {
+        console.error('Failed to parse onboarding applications:', e);
+        setOnboardingRequests([]);
       }
     }
   }, []);
@@ -144,20 +123,42 @@ export default function DashboardPage() {
     (t: any) => t.title?.includes('[PLATFORM_ISSUE]') || t.title?.includes('[SYSTEM_ISSUE]')
   );
 
+  const saveUpdatedRequests = (updated: OnboardingRequest[]) => {
+    setOnboardingRequests(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('tenant_onboarding_applications', JSON.stringify(updated));
+    }
+  };
+
   const handleApproveRequest = (id: string, orgName: string) => {
-    setOnboardingRequests((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: 'APPROVED' } : r))
+    const updated = onboardingRequests.map((r) =>
+      r.id === id ? { ...r, status: 'APPROVED' as const } : r
     );
+    saveUpdatedRequests(updated);
     setNotificationMsg(`✅ Approved ${orgName}! Tenant organization created and admin access enabled.`);
     setTimeout(() => setNotificationMsg(null), 4000);
   };
 
   const handleRejectRequest = (id: string, orgName: string) => {
-    setOnboardingRequests((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: 'REJECTED' } : r))
+    const updated = onboardingRequests.map((r) =>
+      r.id === id ? { ...r, status: 'REJECTED' as const } : r
     );
+    saveUpdatedRequests(updated);
     setNotificationMsg(`❌ Application for ${orgName} was rejected.`);
     setTimeout(() => setNotificationMsg(null), 4000);
+  };
+
+  const handleDeleteRequest = (id: string) => {
+    const updated = onboardingRequests.filter((r) => r.id !== id);
+    saveUpdatedRequests(updated);
+    setNotificationMsg(`🗑️ Application removed from list.`);
+    setTimeout(() => setNotificationMsg(null), 3000);
+  };
+
+  const handleClearAllRequests = () => {
+    saveUpdatedRequests([]);
+    setNotificationMsg(`🧹 All onboarding applications have been cleared.`);
+    setTimeout(() => setNotificationMsg(null), 3000);
   };
 
   const totalConvs = analytics?.totalConversations ?? 0;
@@ -446,7 +447,7 @@ export default function DashboardPage() {
       {isSuperAdmin && activeTab === 'onboarding' && (
         <div className="space-y-6">
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
-            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <Building2 className="h-5 w-5 text-sky-600 dark:text-sky-400" />
@@ -456,78 +457,114 @@ export default function DashboardPage() {
                   Applications submitted from the homepage modal waiting for Super Admin review and workspace provisioning.
                 </p>
               </div>
-              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-sky-50 dark:bg-sky-950 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
-                {onboardingRequests.length} Total Applications
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-sky-50 dark:bg-sky-950 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
+                  {onboardingRequests.length} Total Applications
+                </span>
+                {onboardingRequests.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearAllRequests}
+                    className="text-xs font-semibold px-3 py-1 rounded-lg border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors flex items-center gap-1 cursor-pointer"
+                    title="Clear all applications"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    <span>Clear All</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
-              {onboardingRequests.map((req) => (
-                <div key={req.id} className="p-5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-                  <div className="space-y-1.5 min-w-0">
-                    <div className="flex items-center gap-2.5 flex-wrap">
-                      <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">{req.orgName}</h3>
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                        {req.industry}
-                      </span>
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          req.status === 'APPROVED'
-                            ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
-                            : req.status === 'REJECTED'
-                            ? 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
-                            : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 animate-pulse'
-                        }`}
+              {onboardingRequests.length > 0 ? (
+                onboardingRequests.map((req) => (
+                  <div key={req.id} className="p-5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                    <div className="space-y-1.5 min-w-0">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">{req.orgName}</h3>
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                          {req.industry}
+                        </span>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            req.status === 'APPROVED'
+                              ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                              : req.status === 'REJECTED'
+                              ? 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
+                              : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 animate-pulse'
+                          }`}
+                        >
+                          {req.status}
+                        </span>
+                      </div>
+
+                      <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-4 flex-wrap">
+                        <span>Contact: <strong className="text-slate-700 dark:text-slate-200">{req.contactName}</strong></span>
+                        <span>Email: <strong className="text-slate-700 dark:text-slate-200">{req.email}</strong></span>
+                        <span>Phone: <strong className="text-slate-700 dark:text-slate-200">{req.phone}</strong></span>
+                        <span>Submitted: {req.createdAt}</span>
+                      </div>
+
+                      <p className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                        &quot;{req.notes}&quot;
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {req.status === 'PENDING_REVIEW' ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleRejectRequest(req.id, req.orgName)}
+                            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors cursor-pointer"
+                          >
+                            Reject
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleApproveRequest(req.id, req.orgName)}
+                            className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <span>Approve Workspace</span>
+                          </button>
+                        </>
+                      ) : req.status === 'APPROVED' ? (
+                        <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span>Workspace Active</span>
+                        </span>
+                      ) : (
+                        <span className="text-xs font-semibold text-rose-500 flex items-center gap-1">
+                          <XCircle className="h-4 w-4" />
+                          <span>Declined</span>
+                        </span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteRequest(req.id)}
+                        className="p-1.5 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                        title="Delete application"
                       >
-                        {req.status}
-                      </span>
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
-
-                    <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-4 flex-wrap">
-                      <span>Contact: <strong className="text-slate-700 dark:text-slate-200">{req.contactName}</strong></span>
-                      <span>Email: <strong className="text-slate-700 dark:text-slate-200">{req.email}</strong></span>
-                      <span>Phone: <strong className="text-slate-700 dark:text-slate-200">{req.phone}</strong></span>
-                      <span>Submitted: {req.createdAt}</span>
-                    </div>
-
-                    <p className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
-                      &quot;{req.notes}&quot;
+                  </div>
+                ))
+              ) : (
+                <div className="p-12 text-center space-y-3 text-slate-400">
+                  <CheckCircle2 className="h-10 w-10 text-emerald-400 mx-auto" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                      No Tenant Applications / មិនមានសំណើសុំបើកគណនីទេ
+                    </p>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      New tenant applications submitted via the landing page modal will appear here in real-time for Super Admin review.
                     </p>
                   </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    {req.status === 'PENDING_REVIEW' ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => handleRejectRequest(req.id, req.orgName)}
-                          className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors cursor-pointer"
-                        >
-                          Reject
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleApproveRequest(req.id, req.orgName)}
-                          className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
-                        >
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          <span>Approve Workspace</span>
-                        </button>
-                      </>
-                    ) : req.status === 'APPROVED' ? (
-                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                        <CheckCircle2 className="h-4 w-4" />
-                        <span>Workspace Active</span>
-                      </span>
-                    ) : (
-                      <span className="text-xs font-semibold text-rose-500 flex items-center gap-1">
-                        <XCircle className="h-4 w-4" />
-                        <span>Declined</span>
-                      </span>
-                    )}
-                  </div>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

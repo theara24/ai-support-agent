@@ -39,26 +39,36 @@ export class SearchKnowledgeBaseTool implements IAgentTool {
     if (!query) return { results: [] };
 
     try {
+      const orgId = context.organizationId;
+      if (!orgId) {
+        this.logger.warn(
+          'searchKnowledgeBase: Missing organizationId in ToolExecutionContext. Aborting search to enforce tenant isolation.',
+        );
+        return { results: [] };
+      }
+
       const provider = this.llmProviderFactory.getProvider();
       const queryEmbedding = await provider.generateEmbeddings(query);
       const vectorString = `[${queryEmbedding.join(',')}]`;
 
-      // Perform pgvector cosine distance search (<=>)
+      // Perform pgvector cosine distance search (<=>) strictly scoped to tenant organizationId
       const vectorResults: Array<{
         id: string;
+        chunkIndex: number;
         content: string;
         documentTitle: string;
         distance: number;
       }> = await this.prisma.$queryRaw`
         SELECT 
           c.id,
+          c."chunkIndex",
           c.content,
           d.title as "documentTitle",
           (c.embedding <=> ${vectorString}::vector) as distance
         FROM document_chunks c
         JOIN knowledge_documents d ON c."documentId" = d.id
         WHERE d.status = 'READY'
-          ${context.organizationId ? Prisma.sql`AND d."organizationId" = ${context.organizationId}` : Prisma.empty}
+          AND d."organizationId" = ${orgId}
         ORDER BY distance ASC
         LIMIT ${limit};
       `;
@@ -67,6 +77,7 @@ export class SearchKnowledgeBaseTool implements IAgentTool {
         return {
           results: vectorResults.map((r) => ({
             documentTitle: r.documentTitle,
+            chunkIndex: r.chunkIndex,
             content: r.content,
             distance: Number(r.distance),
           })),
@@ -76,23 +87,31 @@ export class SearchKnowledgeBaseTool implements IAgentTool {
       this.logger.warn('pgvector search query failed or unindexed, falling back to text match', err);
     }
 
-    // Fallback: Text matching if pgvector table is unpopulated or vector extension error occurs
+    const orgId = context.organizationId;
+    if (!orgId) {
+      return { results: [] };
+    }
+
+    // Fallback: Text matching strictly scoped to the tenant organization
     const chunks = await this.prisma.documentChunk.findMany({
       where: {
         content: { contains: query, mode: 'insensitive' },
-        ...(context.organizationId
-          ? { document: { organizationId: context.organizationId } }
-          : {}),
+        document: {
+          organizationId: orgId,
+          status: 'READY' as any,
+        },
       },
       include: {
         document: { select: { title: true } },
       },
       take: limit,
+      orderBy: { chunkIndex: 'asc' },
     });
 
     return {
       results: chunks.map((c) => ({
         documentTitle: c.document.title,
+        chunkIndex: c.chunkIndex,
         content: c.content,
         distance: 0,
       })),

@@ -5,6 +5,10 @@ import { PrismaClient, DocumentStatus } from '@prisma/client';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import * as crypto from 'crypto';
 
+import { chunkText } from '@ai-support/shared';
+
+export { chunkText };
+
 @Processor('document-processing')
 export class DocumentProcessorService extends WorkerHost {
   private readonly logger = new Logger(DocumentProcessorService.name);
@@ -12,8 +16,9 @@ export class DocumentProcessorService extends WorkerHost {
   private genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'mock_key');
 
   async process(job: Job<{ documentId: string; title: string; content: string }>): Promise<any> {
+    const startTime = Date.now();
     const { documentId, content } = job.data;
-    this.logger.log(`Worker processing document job ID ${job.id} for documentId: ${documentId}`);
+    this.logger.log(`[Queue Job START] id: ${job.id} | name: ${job.name} | documentId: ${documentId}`);
 
     try {
       // 1. Mark status as PROCESSING
@@ -22,12 +27,11 @@ export class DocumentProcessorService extends WorkerHost {
         data: { status: DocumentStatus.PROCESSING },
       });
 
-      // 2. Chunk text content into 500-char segments
-      const chunkSize = 500;
-      const chunksText: string[] = [];
-      for (let i = 0; i < content.length; i += chunkSize) {
-        chunksText.push(content.slice(i, i + chunkSize));
-      }
+      // 2. Chunk text content into semantic, overlapping segments (600–800 chars, 100–150 overlap)
+      const chunksText = chunkText(content, {
+        maxChunkSize: 750,
+        overlap: 120,
+      });
 
       // 3. Store chunks and generate embeddings
       const apiKey = process.env.GEMINI_API_KEY;
@@ -77,10 +81,17 @@ export class DocumentProcessorService extends WorkerHost {
         data: { status: DocumentStatus.READY },
       });
 
-      this.logger.log(`Document processing job ${job.id} COMPLETED for documentId: ${documentId}`);
-      return { status: 'COMPLETED', documentId };
+      const durationMs = Date.now() - startTime;
+      this.logger.log(
+        `[Queue Job SUCCESS] id: ${job.id} | name: ${job.name} | documentId: ${documentId} | chunks: ${chunksText.length} | duration: ${durationMs}ms`,
+      );
+      return { status: 'COMPLETED', documentId, durationMs, chunksCount: chunksText.length };
     } catch (err: any) {
-      this.logger.error(`Document processing job ${job.id} FAILED: ${err.message}`, err.stack);
+      const durationMs = Date.now() - startTime;
+      this.logger.error(
+        `[Queue Job FAILED] id: ${job.id} | name: ${job.name} | documentId: ${documentId} | duration: ${durationMs}ms | error: ${err.message}`,
+        err.stack,
+      );
       await this.prisma.knowledgeDocument.update({
         where: { id: documentId },
         data: {

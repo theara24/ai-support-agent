@@ -44,14 +44,21 @@ export class TicketsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get support ticket details and comments' })
-  async findOne(@Param('id') id: string) {
-    return this.ticketsService.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @GetUser('organizationId') orgId: string,
+  ) {
+    return this.ticketsService.findOne(id, orgId);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update ticket status or assign agent' })
-  async update(@Param('id') id: string, @Body() dto: UpdateTicketDto) {
-    return this.ticketsService.update(id, dto);
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateTicketDto,
+    @GetUser('organizationId') orgId: string,
+  ) {
+    return this.ticketsService.update(id, dto, orgId);
   }
 
   @Post(':id/comments')
@@ -60,7 +67,8 @@ export class TicketsController {
     @Param('id') id: string,
     @GetUser('id') authorId: string,
     @Body() dto: CreateTicketCommentDto,
+    @GetUser('organizationId') orgId: string,
   ) {
-    return this.ticketsService.addComment(id, authorId, dto);
+    return this.ticketsService.addComment(id, authorId, dto, orgId);
   }
 }

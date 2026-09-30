@@ -1,9 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { IAgentTool, ToolExecutionContext } from '../tool.interface';
 import { LLMToolDefinition } from '@ai-support/types';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class GetOrderStatusTool implements IAgentTool {
+  private readonly logger = new Logger(GetOrderStatusTool.name);
+
   readonly definition: LLMToolDefinition = {
     name: 'getOrderStatus',
     description: 'Queries status, tracking number, items, and delivery estimate for a customer order by order ID (e.g., ACME-1001, ACME-1002, ACME-1003).',
@@ -19,6 +22,7 @@ export class GetOrderStatusTool implements IAgentTool {
     },
   };
 
+  // Pre-configured demo orders strictly reserved for authorized sandbox/demo tenants
   private readonly DEMO_ORDERS: Record<string, any> = {
     'ACME-1001': {
       orderId: 'ACME-1001',
@@ -49,20 +53,51 @@ export class GetOrderStatusTool implements IAgentTool {
     },
   };
 
+  constructor(private readonly prisma: PrismaService) {}
+
   async execute(params: { orderId: string }, context: ToolExecutionContext): Promise<any> {
-    const key = (params.orderId || '').trim().toUpperCase();
-    if (this.DEMO_ORDERS[key]) {
-      return this.DEMO_ORDERS[key];
+    const rawOrderId = params?.orderId?.trim();
+    if (!rawOrderId) {
+      return {
+        found: false,
+        message: 'Invalid order lookup request: orderId is required.',
+      };
     }
 
+    const key = rawOrderId.toUpperCase();
+
+    // Verify whether the current tenant is an authorized demo/sandbox tenant
+    let isDemoTenant = false;
+
+    if (context.organizationId) {
+      try {
+        const organization = await this.prisma.organization.findUnique({
+          where: { id: context.organizationId },
+          select: { id: true, slug: true },
+        });
+        isDemoTenant = organization?.slug === 'demo' || organization?.slug === 'acme-support';
+      } catch (err: any) {
+        this.logger.warn(`Failed to inspect organization for demo status: ${err.message}`);
+      }
+    } else if (process.env.NODE_ENV !== 'production' || process.env.AI_PROVIDER === 'demo') {
+      // In local dev/test or explicit demo mode with no organization context
+      isDemoTenant = true;
+    }
+
+    // In demo mode, only resolve known demo orders
+    if (isDemoTenant && this.DEMO_ORDERS[key]) {
+      return {
+        found: true,
+        ...this.DEMO_ORDERS[key],
+      };
+    }
+
+    // In all other cases (production tenants or nonexistent orders): return clear "Order not found"
+    // Never return fabricated tracking or status data in production.
     return {
-      orderId: params.orderId,
-      status: 'SHIPPED',
-      carrier: 'FedEx',
-      trackingNumber: `TRACK-${key}-99`,
-      estimatedDelivery: 'Estimated within 2-3 business days',
-      items: ['Acme Support Standard Package'],
-      totalAmount: '$49.99',
+      found: false,
+      orderId: rawOrderId,
+      message: `Order "${rawOrderId}" was not found. Please verify the order ID and try again.`,
     };
   }
 }

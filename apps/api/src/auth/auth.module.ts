@@ -10,12 +10,22 @@ import { JwtStrategy } from './jwt.strategy';
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET', 'super_secret_jwt_access_key'),
-        signOptions: {
-          expiresIn: configService.get<string>('JWT_ACCESS_EXPIRATION', '15m'),
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const secret =
+          configService.get<string>('JWT_SECRET')?.trim() ||
+          process.env.JWT_SECRET?.trim();
+        if (!secret) {
+          throw new Error(
+            'FATAL CONFIGURATION ERROR: JWT_SECRET environment variable is missing or empty. Application refuses to boot.',
+          );
+        }
+        return {
+          secret,
+          signOptions: {
+            expiresIn: configService.get<string>('JWT_ACCESS_EXPIRATION', '15m'),
+          },
+        };
+      },
       inject: [ConfigService],
     }),
   ],

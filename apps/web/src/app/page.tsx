@@ -98,7 +98,46 @@ export default function Home() {
     setIsSubmitting(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 800));
-      const ref = `#REQ-${Math.floor(100000 + Math.random() * 900000)}`;
+      const refCode = `REQ-${Math.floor(100000 + Math.random() * 900000)}`;
+      const ref = `#${refCode}`;
+
+      const industryLabel =
+        industry === 'corporate'
+          ? 'Business & Tech'
+          : industry === 'university'
+          ? 'Education & University'
+          : industry === 'clinic'
+          ? 'Healthcare & Clinic'
+          : industry === 'retail'
+          ? 'E-Commerce & Retail'
+          : customIndustry || 'Other';
+
+      const newApp = {
+        id: refCode,
+        orgName: orgName.trim(),
+        industry: industryLabel,
+        contactName: contactName.trim(),
+        email: email.trim(),
+        phone: phone.trim() || 'N/A',
+        notes: notes.trim() || 'Standard AI Assistant workspace request',
+        status: 'PENDING_REVIEW' as const,
+        createdAt: new Date().toLocaleString(),
+      };
+
+      if (typeof window !== 'undefined') {
+        try {
+          const existing = JSON.parse(
+            localStorage.getItem('tenant_onboarding_applications') || '[]'
+          );
+          localStorage.setItem(
+            'tenant_onboarding_applications',
+            JSON.stringify([newApp, ...existing])
+          );
+        } catch (err) {
+          console.error('Failed to save onboarding application to storage:', err);
+        }
+      }
+
       setRequestRef(ref);
       setSubmitSuccess(true);
     } finally {

@@ -11,10 +11,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private configService: ConfigService,
     private prisma: PrismaService,
   ) {
+    const jwtSecret =
+      configService.get<string>('JWT_SECRET')?.trim() ||
+      process.env.JWT_SECRET?.trim();
+
+    if (!jwtSecret) {
+      throw new Error(
+        'FATAL CONFIGURATION ERROR: JWT_SECRET environment variable is missing or empty. Application refuses to boot.',
+      );
+    }
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET', 'super_secret_jwt_access_key'),
+      secretOrKey: jwtSecret,
     });
   }
 

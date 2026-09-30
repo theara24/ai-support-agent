@@ -11,6 +11,10 @@ export function getSocket(): Socket {
       autoConnect: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
+      auth: (cb) => {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+        cb({ token: token || undefined });
+      },
     });
 
     socket.on('connect', () => {

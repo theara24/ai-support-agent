@@ -30,6 +30,15 @@ export class ConversationsService {
   ) {}
 
   async create(dto: CreateConversationDto, orgId?: string) {
+    let effectiveOrgId = orgId;
+    if (!effectiveOrgId) {
+      const defaultOrg =
+        (await this.prisma.organization.findFirst({
+          where: { slug: 'acme-support' },
+        })) || (await this.prisma.organization.findFirst());
+      effectiveOrgId = defaultOrg?.id;
+    }
+
     let customerId = dto.customerId;
 
     if (!customerId) {
@@ -37,10 +46,17 @@ export class ConversationsService {
         data: {
           name: dto.customerName || 'Anonymous Web Visitor',
           email: dto.customerEmail,
-          organizationId: orgId,
+          organizationId: effectiveOrgId,
         },
       });
       customerId = customer.id;
+    } else if (effectiveOrgId) {
+      const customer = await this.prisma.customer.findFirst({
+        where: { id: customerId, organizationId: effectiveOrgId },
+      });
+      if (!customer) {
+        throw new NotFoundException(`Customer with ID ${customerId} not found`);
+      }
     }
 
     const conversation = await this.prisma.conversation.create({
@@ -48,7 +64,7 @@ export class ConversationsService {
         channel: dto.channel || ConversationChannel.WEB,
         status: ConversationStatus.AI_ACTIVE,
         customerId,
-        organizationId: orgId,
+        organizationId: effectiveOrgId,
       },
       include: {
         customer: true,
@@ -71,11 +87,7 @@ export class ConversationsService {
       where: {
         ...(status ? { status } : {}),
         ...(channel ? { channel } : {}),
-        ...(orgId
-          ? {
-              OR: [{ organizationId: orgId }, { organizationId: null }],
-            }
-          : {}),
+        ...(orgId ? { organizationId: orgId } : {}),
       },
       include: {
         customer: true,
@@ -91,9 +103,13 @@ export class ConversationsService {
     });
   }
 
-  async findOne(id: string, user?: AuthenticatedUser) {
-    const conversation = await this.prisma.conversation.findUnique({
-      where: { id },
+  async findOne(id: string, organizationId: string, user?: AuthenticatedUser) {
+    if (!organizationId) {
+      throw new NotFoundException(`Conversation with ID ${id} not found`);
+    }
+
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id, organizationId },
       include: {
         customer: true,
         assignedAgent: {
@@ -133,9 +149,14 @@ export class ConversationsService {
     senderType: MessageSenderType,
     senderId?: string,
     skipAiAutoTrigger = false,
+    organizationId?: string,
   ) {
-    const conversation = await this.prisma.conversation.findUnique({
-      where: { id: conversationId },
+    if (!organizationId) {
+      throw new NotFoundException(`Conversation with ID ${conversationId} not found`);
+    }
+
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id: conversationId, organizationId },
     });
 
     if (!conversation) {
@@ -186,7 +207,12 @@ export class ConversationsService {
       conversation.channel === ConversationChannel.TELEGRAM
     ) {
       this.prisma.customer
-        .findUnique({ where: { id: conversation.customerId } })
+        .findFirst({
+          where: {
+            id: conversation.customerId,
+            ...(conversation.organizationId ? { organizationId: conversation.organizationId } : {}),
+          },
+        })
         .then((cust) => {
           if (cust?.telegramChatId) {
             this.telegramService.sendTelegramMessage(cust.telegramChatId, dto.content);
@@ -200,8 +226,14 @@ export class ConversationsService {
     return message;
   }
 
-  async updateStatus(id: string, dto: UpdateConversationStatusDto) {
-    const existing = await this.prisma.conversation.findUnique({ where: { id } });
+  async updateStatus(id: string, dto: UpdateConversationStatusDto, organizationId: string) {
+    if (!organizationId) {
+      throw new NotFoundException(`Conversation with ID ${id} not found`);
+    }
+
+    const existing = await this.prisma.conversation.findFirst({
+      where: { id, organizationId },
+    });
     if (!existing) {
       throw new NotFoundException(`Conversation with ID ${id} not found`);
     }
@@ -222,8 +254,14 @@ export class ConversationsService {
     return updated;
   }
 
-  async takeover(id: string, agentId: string) {
-    const existing = await this.prisma.conversation.findUnique({ where: { id } });
+  async takeover(id: string, agentId: string, organizationId: string) {
+    if (!organizationId) {
+      throw new NotFoundException(`Conversation with ID ${id} not found`);
+    }
+
+    const existing = await this.prisma.conversation.findFirst({
+      where: { id, organizationId },
+    });
     if (!existing) {
       throw new NotFoundException(`Conversation with ID ${id} not found`);
     }
@@ -258,10 +296,23 @@ export class ConversationsService {
     return updated;
   }
 
-  async assignAgent(id: string, dto: AssignAgentDto) {
-    const existing = await this.prisma.conversation.findUnique({ where: { id } });
+  async assignAgent(id: string, dto: AssignAgentDto, organizationId: string) {
+    if (!organizationId) {
+      throw new NotFoundException(`Conversation with ID ${id} not found`);
+    }
+
+    const existing = await this.prisma.conversation.findFirst({
+      where: { id, organizationId },
+    });
     if (!existing) {
       throw new NotFoundException(`Conversation with ID ${id} not found`);
+    }
+
+    const agent = await this.prisma.user.findFirst({
+      where: { id: dto.agentId, organizationId },
+    });
+    if (!agent) {
+      throw new NotFoundException(`Agent with ID ${dto.agentId} not found in this organization`);
     }
 
     const updated = await this.prisma.conversation.update({

@@ -4,6 +4,7 @@ import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateKnowledgeDocumentDto } from './dto/knowledge-base.dto';
 import { DocumentStatus } from '@ai-support/types';
+import { chunkText } from '@ai-support/shared';
 
 @Injectable()
 export class KnowledgeBaseService {
@@ -67,13 +68,16 @@ export class KnowledgeBaseService {
   }
 
   private async processSynchronousFallback(documentId: string, content: string) {
-    const chunkSize = 500;
-    for (let i = 0; i < content.length; i += chunkSize) {
+    const chunks = chunkText(content, {
+      maxChunkSize: 750,
+      overlap: 120,
+    });
+    for (let i = 0; i < chunks.length; i++) {
       await this.prisma.documentChunk.create({
         data: {
           documentId,
-          chunkIndex: Math.floor(i / chunkSize),
-          content: content.slice(i, i + chunkSize),
+          chunkIndex: i,
+          content: chunks[i],
         },
       });
     }
@@ -83,8 +87,33 @@ export class KnowledgeBaseService {
     });
   }
 
-  async delete(id: string) {
-    const doc = await this.prisma.knowledgeDocument.findUnique({ where: { id } });
+  async findOne(id: string, organizationId: string) {
+    if (!organizationId) {
+      throw new NotFoundException(`Knowledge Document ${id} not found`);
+    }
+
+    const doc = await this.prisma.knowledgeDocument.findFirst({
+      where: { id, organizationId },
+      include: {
+        _count: { select: { chunks: true } },
+      },
+    });
+
+    if (!doc) {
+      throw new NotFoundException(`Knowledge Document ${id} not found`);
+    }
+
+    return doc;
+  }
+
+  async delete(id: string, organizationId: string) {
+    if (!organizationId) {
+      throw new NotFoundException(`Knowledge Document ${id} not found`);
+    }
+
+    const doc = await this.prisma.knowledgeDocument.findFirst({
+      where: { id, organizationId },
+    });
     if (!doc) {
       throw new NotFoundException(`Knowledge Document ${id} not found`);
     }

@@ -47,7 +47,10 @@ export class KnowledgeBaseController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @RequirePermissions(Permission.KNOWLEDGE_BASE_WRITE)
   @ApiOperation({ summary: 'Delete knowledge base document' })
-  async delete(@Param('id') id: string) {
-    return this.kbService.delete(id);
+  async delete(
+    @Param('id') id: string,
+    @GetUser('organizationId') orgId: string,
+  ) {
+    return this.kbService.delete(id, orgId);
   }
 }

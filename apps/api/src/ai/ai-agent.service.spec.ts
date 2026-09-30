@@ -422,4 +422,34 @@ describe('AiAgentService & AI Capabilities', () => {
       expect(res.content).toBeDefined();
     });
   });
+
+  // 11. Human Takeover Race Condition Prevention
+  describe('Human Takeover Race Condition Prevention', () => {
+    it('should discard AI response if conversation was taken over by a human during LLM generation', async () => {
+      // 1st lookup at start: AI_ACTIVE
+      mockPrisma.conversation.findUnique
+        .mockResolvedValueOnce({
+          id: 'conv-1',
+          customerId: 'cust-1',
+          status: ConversationStatus.AI_ACTIVE,
+          messages: [],
+        })
+        // 2nd lookup after LLM completes: HUMAN_ACTIVE (human agent clicked Take Over)
+        .mockResolvedValueOnce({
+          id: 'conv-1',
+          status: ConversationStatus.HUMAN_ACTIVE,
+        });
+
+      mockProvider.generateChatCompletion.mockResolvedValue({
+        content: 'Late AI answer generated during takeover',
+      });
+
+      const reply = await service.processIncomingMessage('conv-1', 'Help me please');
+      expect(reply).toBe('');
+      // Verify AI message was NOT saved to DB
+      expect(mockPrisma.message.create).not.toHaveBeenCalled();
+      // Verify AI message was NOT broadcast via Socket.IO
+      expect(mockMessagesGateway.emitNewMessage).not.toHaveBeenCalled();
+    });
+  });
 });

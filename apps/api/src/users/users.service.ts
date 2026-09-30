@@ -22,9 +22,12 @@ export class UsersService {
     });
   }
 
-  async findOne(id: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
+  async findOne(id: string, organizationId?: string) {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id,
+        ...(organizationId ? { organizationId } : {}),
+      },
       select: {
         id: true,
         email: true,
@@ -43,8 +46,8 @@ export class UsersService {
     return user;
   }
 
-  async updateRole(id: string, role: UserRole) {
-    await this.findOne(id);
+  async updateRole(id: string, role: UserRole, organizationId?: string) {
+    await this.findOne(id, organizationId);
     return this.prisma.user.update({
       where: { id },
       data: { role: role as any },

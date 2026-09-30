@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: CI Pipeline
 
 on:
   push:
@@ -7,16 +7,20 @@ on:
     branches: [main, master]
 
 jobs:
-  build-and-test:
-    name: Build & Verify Monorepo
+  verify:
+    name: Lint, Test & Build
     runs-on: ubuntu-latest
+
+    env:
+      NODE_ENV: test
+      JWT_SECRET: ci_test_jwt_secret_key_minimum_length_required
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/min-node@v4
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
@@ -24,21 +28,17 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Build TypeScript Packages
-        run: |
-          npm run build:types
-          npm run build:shared
-
       - name: Generate Prisma Client
         run: npm run prisma:generate
 
-      - name: Build NestJS API & Worker
+      - name: Lint & Typecheck
         run: |
-          npm run build:api
-          npm run build:worker
+          npm run lint
+          npm run build:types
+          npm run build:shared
 
-      - name: Build Next.js Dashboard
-        run: npm run build:web
-
-      - name: Run Backend Tests
+      - name: Run Test Suite
         run: npm test
+
+      - name: Run Production Build
+        run: npm run build

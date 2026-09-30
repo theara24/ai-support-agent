@@ -14,6 +14,22 @@ export class TicketsService {
         data: { name: 'Support Requester', organizationId: orgId },
       });
       dto.customerId = newCust.id;
+    } else if (orgId) {
+      const cust = await this.prisma.customer.findFirst({
+        where: { id: custId, organizationId: orgId },
+      });
+      if (!cust) {
+        throw new NotFoundException(`Customer with ID ${custId} not found`);
+      }
+    }
+
+    if (dto.conversationId && orgId) {
+      const conv = await this.prisma.conversation.findFirst({
+        where: { id: dto.conversationId, organizationId: orgId },
+      });
+      if (!conv) {
+        throw new NotFoundException(`Conversation with ID ${dto.conversationId} not found`);
+      }
     }
 
     return this.prisma.ticket.create({
@@ -51,9 +67,13 @@ export class TicketsService {
     });
   }
 
-  async findOne(id: string) {
-    const ticket = await this.prisma.ticket.findUnique({
-      where: { id },
+  async findOne(id: string, organizationId: string) {
+    if (!organizationId) {
+      throw new NotFoundException(`Ticket ${id} not found`);
+    }
+
+    const ticket = await this.prisma.ticket.findFirst({
+      where: { id, organizationId },
       include: {
         customer: true,
         assignedAgent: {
@@ -72,8 +92,8 @@ export class TicketsService {
     return ticket;
   }
 
-  async update(id: string, dto: UpdateTicketDto) {
-    await this.findOne(id);
+  async update(id: string, dto: UpdateTicketDto, organizationId: string) {
+    await this.findOne(id, organizationId);
     return this.prisma.ticket.update({
       where: { id },
       data: { ...dto },
@@ -86,8 +106,8 @@ export class TicketsService {
     });
   }
 
-  async addComment(ticketId: string, authorId: string, dto: CreateTicketCommentDto) {
-    await this.findOne(ticketId);
+  async addComment(ticketId: string, authorId: string, dto: CreateTicketCommentDto, organizationId: string) {
+    await this.findOne(ticketId, organizationId);
     return this.prisma.ticketComment.create({
       data: {
         ticketId,

@@ -471,7 +471,7 @@ export default function ConversationsPage() {
     }, 45000);
 
     return () => clearInterval(timer);
-  }, [pendingWaitingConvs.length, playAlertChime, showNotification, t]);
+  }, [pendingWaitingConvs, playAlertChime, showNotification, t]);
 
   const activeId = selectedId || (filteredConversations[0]?.id ?? null);
   const currentConv =

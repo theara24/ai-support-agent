@@ -198,18 +198,29 @@ export class AuthService {
   }
 
   private getJwtSecret(): string {
-    const secret = this.configService.get<string>('JWT_SECRET');
-    if (!secret && process.env.NODE_ENV === 'production') {
-      throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is missing in production');
+    const secret =
+      this.configService.get<string>('JWT_SECRET')?.trim() ||
+      process.env.JWT_SECRET?.trim();
+    if (!secret) {
+      throw new Error(
+        'FATAL CONFIGURATION ERROR: JWT_SECRET environment variable is missing or empty. Application refuses to boot.',
+      );
     }
-    return secret || 'super_secret_jwt_access_key_development_only';
+    return secret;
   }
 
   private getJwtRefreshSecret(): string {
-    const secret = this.configService.get<string>('JWT_REFRESH_SECRET');
-    if (!secret && process.env.NODE_ENV === 'production') {
-      throw new Error('CRITICAL SECURITY ERROR: JWT_REFRESH_SECRET environment variable is missing in production');
+    const secret =
+      this.configService.get<string>('JWT_REFRESH_SECRET')?.trim() ||
+      process.env.JWT_REFRESH_SECRET?.trim();
+    if (!secret) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error(
+          'FATAL CONFIGURATION ERROR: JWT_REFRESH_SECRET environment variable is missing or empty in production.',
+        );
+      }
+      return this.getJwtSecret();
     }
-    return secret || 'super_secret_jwt_refresh_key_development_only';
+    return secret;
   }
 }

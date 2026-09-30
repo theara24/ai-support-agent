@@ -27,15 +27,26 @@ export class UsersController {
   @Get(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SUPPORT_AGENT)
   @ApiOperation({ summary: 'Get user details by ID' })
-  async findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @GetUser('organizationId') orgId?: string,
+    @GetUser('role') role?: UserRole,
+  ) {
+    const effectiveOrgId = role === UserRole.SUPER_ADMIN ? undefined : orgId;
+    return this.usersService.findOne(id, effectiveOrgId);
   }
 
   @Patch(':id/role')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @RequirePermissions(Permission.USER_MANAGE)
   @ApiOperation({ summary: 'Update user role (RBAC)' })
-  async updateRole(@Param('id') id: string, @Body('role') role: UserRole) {
-    return this.usersService.updateRole(id, role);
+  async updateRole(
+    @Param('id') id: string,
+    @Body('role') role: UserRole,
+    @GetUser('organizationId') orgId?: string,
+    @GetUser('role') userRole?: UserRole,
+  ) {
+    const effectiveOrgId = userRole === UserRole.SUPER_ADMIN ? undefined : orgId;
+    return this.usersService.updateRole(id, role, effectiveOrgId);
   }
 }

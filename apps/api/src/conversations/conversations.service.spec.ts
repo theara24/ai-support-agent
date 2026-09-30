@@ -15,10 +15,12 @@ describe('ConversationsService', () => {
     customer: {
       create: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
     },
     conversation: {
       create: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       findMany: jest.fn(),
       update: jest.fn(),
     },
@@ -69,7 +71,7 @@ describe('ConversationsService', () => {
         status: ConversationStatus.AI_ACTIVE,
       });
 
-      const res = await service.create({ customerName: 'Web Visitor', channel: ConversationChannel.WEB });
+      const res = await service.create({ customerName: 'Web Visitor', channel: ConversationChannel.WEB }, 'org-1');
       expect(res.id).toBe('conv-1');
       expect(mockMessagesGateway.emitStatusChange).toHaveBeenCalledWith('conv-1', ConversationStatus.AI_ACTIVE);
     });
@@ -77,8 +79,9 @@ describe('ConversationsService', () => {
 
   describe('findOne & Privacy Filtering', () => {
     it('should hide internal notes from regular customers', async () => {
-      mockPrisma.conversation.findUnique.mockResolvedValue({
+      mockPrisma.conversation.findFirst.mockResolvedValue({
         id: 'conv-1',
+        organizationId: 'org-1',
         customerId: 'cust-1',
         status: ConversationStatus.AI_ACTIVE,
         messages: [
@@ -89,14 +92,19 @@ describe('ConversationsService', () => {
       });
 
       // Anonymous / customer access
-      const res = await service.findOne('conv-1', undefined);
+      const res = await service.findOne('conv-1', 'org-1', undefined);
       expect(res.messages.length).toBe(2);
       expect(res.messages.some((m: any) => m.isInternalNote)).toBe(false);
+      expect(mockPrisma.conversation.findFirst).toHaveBeenCalledWith({
+        where: { id: 'conv-1', organizationId: 'org-1' },
+        include: expect.any(Object),
+      });
     });
 
     it('should show internal notes to authenticated support agents', async () => {
-      mockPrisma.conversation.findUnique.mockResolvedValue({
+      mockPrisma.conversation.findFirst.mockResolvedValue({
         id: 'conv-1',
+        organizationId: 'org-1',
         customerId: 'cust-1',
         status: ConversationStatus.HUMAN_ACTIVE,
         messages: [
@@ -111,15 +119,25 @@ describe('ConversationsService', () => {
         role: UserRole.SUPPORT_AGENT,
       };
 
-      const res = await service.findOne('conv-1', agentUser);
+      const res = await service.findOne('conv-1', 'org-1', agentUser);
       expect(res.messages.length).toBe(2);
       expect(res.messages.some((m: any) => m.isInternalNote)).toBe(true);
+    });
+
+    it('should throw NotFoundException if conversation belongs to another organization (IDOR prevention)', async () => {
+      mockPrisma.conversation.findFirst.mockResolvedValue(null);
+
+      await expect(service.findOne('conv-1', 'wrong-org', undefined)).rejects.toThrow(NotFoundException);
+      expect(mockPrisma.conversation.findFirst).toHaveBeenCalledWith({
+        where: { id: 'conv-1', organizationId: 'wrong-org' },
+        include: expect.any(Object),
+      });
     });
   });
 
   describe('takeover', () => {
     it('should update status to HUMAN_ACTIVE and post system note', async () => {
-      mockPrisma.conversation.findUnique.mockResolvedValue({ id: 'conv-1', status: ConversationStatus.AI_ACTIVE });
+      mockPrisma.conversation.findFirst.mockResolvedValue({ id: 'conv-1', organizationId: 'org-1', status: ConversationStatus.AI_ACTIVE });
       mockPrisma.conversation.update.mockResolvedValue({
         id: 'conv-1',
         status: ConversationStatus.HUMAN_ACTIVE,
@@ -131,7 +149,7 @@ describe('ConversationsService', () => {
         isInternalNote: true,
       });
 
-      const res = await service.takeover('conv-1', 'agent-1');
+      const res = await service.takeover('conv-1', 'agent-1', 'org-1');
       expect(res.status).toBe(ConversationStatus.HUMAN_ACTIVE);
       expect(mockMessagesGateway.emitStatusChange).toHaveBeenCalledWith('conv-1', ConversationStatus.HUMAN_ACTIVE);
       expect(mockMessagesGateway.emitNewMessage).toHaveBeenCalled();
@@ -140,13 +158,13 @@ describe('ConversationsService', () => {
 
   describe('updateStatus', () => {
     it('should update status to RESOLVED and broadcast event', async () => {
-      mockPrisma.conversation.findUnique.mockResolvedValue({ id: 'conv-1', status: ConversationStatus.HUMAN_ACTIVE });
+      mockPrisma.conversation.findFirst.mockResolvedValue({ id: 'conv-1', organizationId: 'org-1', status: ConversationStatus.HUMAN_ACTIVE });
       mockPrisma.conversation.update.mockResolvedValue({
         id: 'conv-1',
         status: ConversationStatus.RESOLVED,
       });
 
-      const res = await service.updateStatus('conv-1', { status: ConversationStatus.RESOLVED });
+      const res = await service.updateStatus('conv-1', { status: ConversationStatus.RESOLVED }, 'org-1');
       expect(res.status).toBe(ConversationStatus.RESOLVED);
       expect(mockMessagesGateway.emitStatusChange).toHaveBeenCalledWith('conv-1', ConversationStatus.RESOLVED);
     });

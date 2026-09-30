@@ -6,10 +6,13 @@ import {
   Param,
   Body,
   Query,
+  Headers,
   UseGuards,
+  NotFoundException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { ConversationsService } from './conversations.service';
+import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateConversationDto,
   UpdateConversationStatusDto,
@@ -29,7 +32,10 @@ import {
 @ApiTags('conversations')
 @Controller('conversations')
 export class ConversationsController {
-  constructor(private readonly conversationsService: ConversationsService) {}
+  constructor(
+    private readonly conversationsService: ConversationsService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Start a new conversation (Web or Telegram)' })
@@ -57,8 +63,27 @@ export class ConversationsController {
   @Get(':id')
   @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Get conversation details & message timeline (internal notes filtered for customers)' })
-  async findOne(@Param('id') id: string, @GetUser() user?: AuthenticatedUser) {
-    return this.conversationsService.findOne(id, user);
+  async findOne(
+    @Param('id') id: string,
+    @GetUser() user?: AuthenticatedUser,
+    @GetUser('organizationId') authOrgId?: string,
+    @Query('orgId') queryOrgId?: string,
+    @Headers('x-organization-id') headerOrgId?: string,
+  ) {
+    let orgId = authOrgId || user?.organizationId || queryOrgId || headerOrgId;
+    if (!orgId) {
+      const conv = await this.prisma.conversation.findUnique({
+        where: { id },
+        select: { organizationId: true },
+      });
+      orgId = conv?.organizationId || undefined;
+    }
+
+    if (!orgId) {
+      throw new NotFoundException(`Conversation with ID ${id} not found`);
+    }
+
+    return this.conversationsService.findOne(id, orgId, user);
   }
 
   @Post(':id/messages')
@@ -68,6 +93,9 @@ export class ConversationsController {
     @Param('id') id: string,
     @Body() dto: CreateMessageDto,
     @GetUser() user?: AuthenticatedUser,
+    @GetUser('organizationId') authOrgId?: string,
+    @Query('orgId') queryOrgId?: string,
+    @Headers('x-organization-id') headerOrgId?: string,
   ) {
     let senderType = dto.senderType;
     if (!senderType) {
@@ -79,11 +107,26 @@ export class ConversationsController {
       dto.isInternalNote = false;
     }
 
+    let orgId = authOrgId || user?.organizationId || queryOrgId || headerOrgId;
+    if (!orgId) {
+      const conv = await this.prisma.conversation.findUnique({
+        where: { id },
+        select: { organizationId: true },
+      });
+      orgId = conv?.organizationId || undefined;
+    }
+
+    if (!orgId) {
+      throw new NotFoundException(`Conversation with ID ${id} not found`);
+    }
+
     return this.conversationsService.addMessage(
       id,
       dto,
       senderType,
       senderType === MessageSenderType.AGENT ? user?.id : undefined,
+      false,
+      orgId,
     );
   }
 
@@ -94,23 +137,32 @@ export class ConversationsController {
   async updateStatus(
     @Param('id') id: string,
     @Body() dto: UpdateConversationStatusDto,
+    @GetUser('organizationId') orgId: string,
   ) {
-    return this.conversationsService.updateStatus(id, dto);
+    return this.conversationsService.updateStatus(id, dto, orgId);
   }
 
   @Post(':id/takeover')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Support agent takes over conversation from AI' })
-  async takeover(@Param('id') id: string, @GetUser('id') agentId: string) {
-    return this.conversationsService.takeover(id, agentId);
+  async takeover(
+    @Param('id') id: string,
+    @GetUser('id') agentId: string,
+    @GetUser('organizationId') orgId: string,
+  ) {
+    return this.conversationsService.takeover(id, agentId, orgId);
   }
 
   @Patch(':id/assign')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Assign conversation to support agent' })
-  async assignAgent(@Param('id') id: string, @Body() dto: AssignAgentDto) {
-    return this.conversationsService.assignAgent(id, dto);
+  async assignAgent(
+    @Param('id') id: string,
+    @Body() dto: AssignAgentDto,
+    @GetUser('organizationId') orgId: string,
+  ) {
+    return this.conversationsService.assignAgent(id, dto, orgId);
   }
 }

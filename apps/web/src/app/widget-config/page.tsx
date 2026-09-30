@@ -224,12 +224,12 @@ export default function WidgetConfigPage() {
         </div>
 
         <a
-          href="/widget-demo.html"
+          href={previewUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-semibold text-xs px-4 py-2.5 rounded-lg shadow-sm transition-colors border border-transparent dark:border-slate-700"
         >
-          <span>Open Live External Demo</span>
+          <span>Open Full Widget Preview</span>
           <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
         </a>
       </div>
