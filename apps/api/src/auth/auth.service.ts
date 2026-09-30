@@ -214,12 +214,7 @@ export class AuthService {
       this.configService.get<string>('JWT_REFRESH_SECRET')?.trim() ||
       process.env.JWT_REFRESH_SECRET?.trim();
     if (!secret) {
-      if (process.env.NODE_ENV === 'production') {
-        throw new Error(
-          'FATAL CONFIGURATION ERROR: JWT_REFRESH_SECRET environment variable is missing or empty in production.',
-        );
-      }
-      return this.getJwtSecret();
+      return `${this.getJwtSecret()}_refresh_secret`;
     }
     return secret;
   }
