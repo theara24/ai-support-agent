@@ -27,7 +27,7 @@
     "prisma:studio": "npm run prisma:studio --workspace=apps/api",
     "db:seed": "npm run db:seed --workspace=apps/api"
   },
-  "devDependencies": {
+  "dependencies": {
     "typescript": "^5.4.5"
   }
 }

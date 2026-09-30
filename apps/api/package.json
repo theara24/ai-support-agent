@@ -45,10 +45,11 @@
     "pdf-parse": "^1.1.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "socket.io": "^4.7.5"
+    "socket.io": "^4.7.5",
+    "@nestjs/cli": "^10.3.2",
+    "typescript": "^5.4.5"
   },
   "devDependencies": {
-    "@nestjs/cli": "^10.3.2",
     "@nestjs/schematics": "^10.1.1",
     "@nestjs/testing": "^10.3.8",
     "@types/bcrypt": "^5.0.2",
@@ -63,8 +64,7 @@
     "prisma": "^5.14.0",
     "supertest": "^7.0.0",
     "ts-jest": "^29.1.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
+    "ts-node": "^10.9.2"
   },
   "jest": {
     "moduleFileExtensions": [
