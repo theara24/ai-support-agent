@@ -114,7 +114,13 @@ export async function apiFetch<T = any>(
             }
           } catch (err) {
             isRefreshing = false;
-            // Throw error without forcing hard window.location.href loop
+            refreshSubscribers = [];
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
+            if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+              window.location.href = '/login';
+            }
             throw new ApiError('Session expired. Please log in again.', 401, requestId);
           }
         }
@@ -129,6 +135,12 @@ export async function apiFetch<T = any>(
           });
         });
       } else {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
         throw new ApiError('Unauthorized. Please log in.', 401, requestId);
       }
     }
