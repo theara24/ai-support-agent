@@ -41,6 +41,11 @@ export class MessagesGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   // Track conversation rooms: conversationId -> Set of socket IDs
   private conversationRooms = new Map<string, Set<string>>();
 
+  // Track connected authenticated users: userId -> Set of socket IDs
+  private userSockets = new Map<string, Set<string>>();
+  // Track socket to user mapping: socket.id -> AuthenticatedUser
+  private socketUsers = new Map<string, AuthenticatedUser>();
+
   constructor(
     private readonly wsJwtGuard: WsJwtGuard,
     private readonly prisma: PrismaService,
@@ -82,6 +87,24 @@ export class MessagesGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       client.disconnect(true);
       return;
     }
+
+    if (user.id && !user.id.startsWith('customer_')) {
+      if (!this.userSockets.has(user.id)) {
+        this.userSockets.set(user.id, new Set());
+      }
+      this.userSockets.get(user.id)!.add(client.id);
+      this.socketUsers.set(client.id, user);
+
+      if (user.organizationId) {
+        client.join(`org:${user.organizationId}`);
+      }
+      if (user.role === UserRole.SUPER_ADMIN) {
+        client.join('role:super_admin');
+      }
+
+      this.broadcastGlobalPresence();
+    }
+
     this.logger.log(
       `Client connected: ${client.id} (user: ${user.id}, role: ${user.role}, org: ${user.organizationId || 'none'})`,
     );
@@ -100,6 +123,19 @@ export class MessagesGateway implements OnGatewayInit, OnGatewayConnection, OnGa
         }
       }
       await this.broadcastPresence(clientInfo.conversationId);
+    }
+
+    const authUser = this.socketUsers.get(client.id);
+    if (authUser) {
+      this.socketUsers.delete(client.id);
+      const sockets = this.userSockets.get(authUser.id);
+      if (sockets) {
+        sockets.delete(client.id);
+        if (sockets.size === 0) {
+          this.userSockets.delete(authUser.id);
+        }
+      }
+      this.broadcastGlobalPresence();
     }
   }
 
@@ -319,5 +355,88 @@ export class MessagesGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     const presence = await this.getConversationPresence(conversationId);
     this.server.to(`conversation:${conversationId}`).emit('presence:update', presence);
     this.server.emit('presence:update', presence);
+  }
+
+  isUserOnline(userId: string): boolean {
+    return this.userSockets.has(userId) && (this.userSockets.get(userId)?.size || 0) > 0;
+  }
+
+  getOnlineUserIds(): string[] {
+    return Array.from(this.userSockets.keys());
+  }
+
+  getOnlineCounts(orgId?: string) {
+    let onlineUsers = 0;
+    let onlineAgents = 0;
+
+    for (const [userId, sockets] of this.userSockets.entries()) {
+      if (sockets.size === 0) continue;
+      // find user details from any active socket
+      const firstSocketId = sockets.values().next().value;
+      const u = firstSocketId ? this.socketUsers.get(firstSocketId) : undefined;
+      if (!u) continue;
+
+      if (!orgId || u.organizationId === orgId || u.role === UserRole.SUPER_ADMIN) {
+        onlineUsers++;
+        if (
+          u.role === UserRole.SUPPORT_AGENT ||
+          u.role === UserRole.ADMIN ||
+          u.role === UserRole.SUPER_ADMIN
+        ) {
+          onlineAgents++;
+        }
+      }
+    }
+
+    return { onlineUsers, onlineAgents };
+  }
+
+  broadcastGlobalPresence() {
+    if (!this.server) return;
+    const onlineUserIds = this.getOnlineUserIds();
+    const { onlineUsers, onlineAgents } = this.getOnlineCounts();
+
+    this.server.emit('presence:global', {
+      onlineUserIds,
+      onlineUsers,
+      onlineAgents,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  @SubscribeMessage('presence:global:query')
+  handleGlobalPresenceQuery() {
+    return {
+      onlineUserIds: this.getOnlineUserIds(),
+      ...this.getOnlineCounts(),
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  emitTeamMemberCreated(orgId: string | undefined, member: any) {
+    if (!this.server) return;
+    if (orgId) {
+      this.server.to(`org:${orgId}`).emit('team:member_created', member);
+    }
+    this.server.to('role:super_admin').emit('team:member_created', member);
+    this.server.emit('team:changed', { action: 'created', memberId: member.id });
+  }
+
+  emitTeamMemberDeleted(orgId: string | undefined, userId: string) {
+    if (!this.server) return;
+    if (orgId) {
+      this.server.to(`org:${orgId}`).emit('team:member_deleted', { userId });
+    }
+    this.server.to('role:super_admin').emit('team:member_deleted', { userId });
+    this.server.emit('team:changed', { action: 'deleted', memberId: userId });
+  }
+
+  emitTeamMemberUpdated(orgId: string | undefined, member: any) {
+    if (!this.server) return;
+    if (orgId) {
+      this.server.to(`org:${orgId}`).emit('team:member_updated', member);
+    }
+    this.server.to('role:super_admin').emit('team:member_updated', member);
+    this.server.emit('team:changed', { action: 'updated', memberId: member.id });
   }
 }

@@ -16,6 +16,8 @@ import {
   Sun,
   Languages,
   ShieldAlert,
+  Users,
+  Settings,
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { useApp } from '@/context/AppContext';
@@ -48,14 +50,19 @@ export default function Sidebar() {
     { name: t('nav.dashboard'), href: '/dashboard', icon: LayoutDashboard },
     { name: t('nav.conversations'), href: '/conversations', icon: MessageSquare },
     { name: t('nav.tickets'), href: '/tickets', icon: Ticket },
+    { name: t('nav.team'), href: '/team', icon: Users, adminOnly: true },
     { name: t('nav.knowledge_base'), href: '/knowledge-base', icon: BookOpen },
     { name: t('nav.analytics'), href: '/analytics', icon: BarChart3 },
     { name: t('nav.chat_widget'), href: '/widget-config', icon: Code2 },
+    { name: t('nav.settings'), href: '/settings', icon: Settings },
   ];
 
   const visibleNav = navigation.filter((item) => {
+    if (item.adminOnly && isSupportAgent) {
+      return false;
+    }
     if (isSupportAgent) {
-      return item.href === '/dashboard' || item.href === '/conversations' || item.href === '/tickets';
+      return item.href === '/dashboard' || item.href === '/conversations' || item.href === '/tickets' || item.href === '/settings';
     }
     return true;
   });
@@ -195,18 +202,22 @@ export default function Sidebar() {
 
         {/* User Profile */}
         <div className="flex items-center justify-between pt-1">
-          <div className="flex items-center gap-2.5 truncate min-w-0">
-            <div className="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-xs shrink-0">
+          <Link
+            href="/settings"
+            className="flex items-center gap-2.5 truncate min-w-0 hover:opacity-85 transition-opacity group"
+            title="Edit profile in Settings"
+          >
+            <div className="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-xs shrink-0 group-hover:ring-2 ring-sky-500">
               {initials}
             </div>
-            <div className="truncate min-w-0">
-              <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">{displayName}</p>
+            <div className="truncate min-w-0 text-left">
+              <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate group-hover:text-sky-600 dark:group-hover:text-sky-400">{displayName}</p>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{displayEmail}</p>
               <span className={`inline-block mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded border ${roleDisplay.bg}`}>
                 {roleDisplay.label}
               </span>
             </div>
-          </div>
+          </Link>
           <button
             onClick={handleLogout}
             className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg transition-colors shrink-0"

@@ -28,8 +28,11 @@ import {
   Copy,
   Check,
   X,
+  Users,
 } from 'lucide-react';
+import Link from 'next/link';
 import { apiFetch, ApiError } from '@/lib/api';
+import { getSocket } from '@/lib/socket';
 
 interface OnboardingRequest {
   id: string;
@@ -136,6 +139,45 @@ export default function DashboardPage() {
       }
     },
   });
+
+  // User and Agent Stats Query
+  const { data: userStats, refetch: refetchUserStats } = useQuery({
+    queryKey: ['dashboard-users-stats'],
+    queryFn: async () => {
+      try {
+        const json = await apiFetch('/api/v1/users/stats');
+        return json.data;
+      } catch {
+        return null;
+      }
+    },
+  });
+
+  // Real-time presence listener
+  const [livePresence, setLivePresence] = useState<{
+    onlineUsers: number;
+    onlineAgents: number;
+  }>({ onlineUsers: 0, onlineAgents: 0 });
+
+  useEffect(() => {
+    const socket = getSocket();
+
+    const handlePresence = (data: any) => {
+      if (data) {
+        setLivePresence({
+          onlineUsers: data.onlineUsers ?? 0,
+          onlineAgents: data.onlineAgents ?? 0,
+        });
+      }
+    };
+
+    socket.on('presence:global', handlePresence);
+    socket.emit('presence:global:query', {}, handlePresence);
+
+    return () => {
+      socket.off('presence:global', handlePresence);
+    };
+  }, []);
 
   // Filter reported platform issues submitted via "Report Issue to Super Admin"
   const platformIssues = allTickets.filter(
@@ -455,6 +497,63 @@ export default function DashboardPage() {
       {/* TAB 1: OPERATIONAL OVERVIEW */}
       {(!isSuperAdmin || activeTab === 'overview') && (
         <div className="space-y-6">
+          {/* Live Real-Time Presence & Team Monitoring Bar */}
+          <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-linear-to-r from-sky-500/5 via-indigo-500/5 to-emerald-500/5 dark:from-sky-950/20 dark:via-indigo-950/20 dark:to-emerald-950/20 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <Radio className="h-5 w-5 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
+                    Live System & Agent Presence
+                  </h3>
+                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+                    Real-Time Active
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Instant WebSocket presence across connected visitors, human agents, and admins.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 self-stretch md:self-auto justify-between md:justify-end">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="text-xs text-slate-500 dark:text-slate-400">Online Agents:</span>
+                <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
+                  {livePresence.onlineAgents || userStats?.onlineAgents || 1}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <span className="h-2 w-2 rounded-full bg-sky-500" />
+                <span className="text-xs text-slate-500 dark:text-slate-400">Active Online Users:</span>
+                <span className="text-xs font-extrabold text-sky-600 dark:text-sky-400">
+                  {livePresence.onlineUsers || userStats?.onlineUsers || 1}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <Users className="h-3.5 w-3.5 text-indigo-500" />
+                <span className="text-xs text-slate-500 dark:text-slate-400">Total Team:</span>
+                <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
+                  {userStats?.totalAgents ?? '—'}
+                </span>
+              </div>
+
+              <Link
+                href="/team"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              >
+                <Users className="h-3.5 w-3.5" />
+                <span>Manage Team</span>
+              </Link>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {stats.map((stat) => {
               const Icon = stat.icon;

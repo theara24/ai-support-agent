@@ -37,9 +37,11 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.dashboard': 'Dashboard',
     'nav.conversations': 'Conversations',
     'nav.tickets': 'Tickets',
+    'nav.team': 'Team & Agents',
     'nav.knowledge_base': 'Knowledge Base',
     'nav.analytics': 'Analytics',
     'nav.chat_widget': 'Chat Widget',
+    'nav.settings': 'Settings & Profile',
     'nav.logout': 'Sign Out',
 
     // Headers & General
@@ -124,9 +126,11 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.dashboard': 'ផ្ទាំងគ្រប់គ្រង',
     'nav.conversations': 'ការសន្ទនា',
     'nav.tickets': 'សំបុត្រជំនួយ',
+    'nav.team': 'ក្រុមការងារ & ភ្នាក់ងារ',
     'nav.knowledge_base': 'មូលដ្ឋានចំណេះដឹង',
     'nav.analytics': 'ការវិភាគ & ស្ថិតិ',
     'nav.chat_widget': 'ធាតុក្រាហ្វិកជជែក',
+    'nav.settings': 'ការកំណត់ & ប្រវត្តិរូប',
     'nav.logout': 'ចាកចេញ',
 
     // Headers & General
