@@ -1,5 +1,6 @@
 import { pbkdf2, randomBytes, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
+import bcrypt from 'bcryptjs';
 import { getPrisma, isDatabaseConfigured } from '@/lib/prisma';
 
 const pbkdf2Async = promisify(pbkdf2);
@@ -16,15 +17,23 @@ export interface TenantAccount {
   createdAt: string;
 }
 
-// OWASP-recommended work factor for PBKDF2-HMAC-SHA512.
+// Cost factor for newly written hashes. Matches the API's seed data (cost 10) so
+// one stored hash is verifiable by both this app and the NestJS API, which calls
+// bcrypt.compare() in apps/api/src/auth/auth.service.ts.
+const BCRYPT_ROUNDS = 10;
+
+// OWASP-recommended work factor for PBKDF2-HMAC-SHA512. Only used to verify
+// hashes written by the short-lived pbkdf2 era; new hashes are bcrypt.
 const PBKDF2_DIGEST = 'sha512';
 const PBKDF2_ITERATIONS = 210_000;
 const PBKDF2_KEYLEN = 64;
 const SALT_BYTES = 16;
 
 // Iteration count used by hashes written before 2026-09-30. Kept only so existing
-// accounts keep verifying; new hashes always use PBKDF2_ITERATIONS above.
+// accounts keep verifying.
 const LEGACY_ITERATIONS = 1_000;
+
+const BCRYPT_PREFIX = /^\$2[aby]?\$/;
 
 function deriveKey(
   password: string,
@@ -48,21 +57,32 @@ function safeEqualHex(a: string, b: string): boolean {
 }
 
 /**
- * Hashes a password into a self-describing, versioned format so the work factor
- * can be raised later without invalidating existing credentials:
- *   pbkdf2$<digest>$<iterations>$<saltHex>$<keyHex>
+ * Hashes a password with bcryptjs (pure JS, so no native toolchain is needed on
+ * Vercel) producing a standard $2b$ hash that the NestJS API can also verify.
  */
 export async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(SALT_BYTES).toString('hex');
-  const key = await deriveKey(password, salt, PBKDF2_ITERATIONS);
-  return `pbkdf2$${PBKDF2_DIGEST}$${PBKDF2_ITERATIONS}$${salt}$${key}`;
+  return bcrypt.hash(password.normalize('NFKC'), BCRYPT_ROUNDS);
 }
 
+/**
+ * Verifies a password against any hash this app has ever written, plus the
+ * bcrypt hashes produced by the API's seed script.
+ */
 export async function verifyPassword(
   password: string,
   storedHash: string
 ): Promise<boolean> {
   if (!storedHash) return false;
+
+  const candidate = password.normalize('NFKC');
+
+  if (BCRYPT_PREFIX.test(storedHash)) {
+    try {
+      return await bcrypt.compare(candidate, storedHash);
+    } catch {
+      return false;
+    }
+  }
 
   const parts = storedHash.split('$');
   if (parts.length === 5 && parts[0] === 'pbkdf2') {
@@ -203,8 +223,11 @@ async function findPersistedAccount(
 }
 
 /**
- * Authenticates a user against persisted Postgres accounts, falling back to the
- * hardcoded bootstrap accounts below (demo / owner sign-ins).
+ * Authenticates a user against the persisted Postgres accounts.
+ *
+ * The returned `id` is always a real `users.id`, because the NestJS API resolves
+ * `payload.sub` with `prisma.user.findUnique({ where: { id: payload.sub } })` and
+ * rejects the request when it finds nothing. Never return a synthetic id here.
  */
 export async function authenticateCredentials(
   email: string,
@@ -212,68 +235,12 @@ export async function authenticateCredentials(
 ): Promise<TenantAccount | null> {
   const cleanEmail = email.trim().toLowerCase();
 
-  const persisted = await findPersistedAccount(cleanEmail, pass);
-  if (persisted) return persisted;
-
-  const now = new Date().toISOString();
-
-  if (cleanEmail === 'chimtheara93@gmail.com') {
-    if (pass === 'Support@6137!' || pass === 'SecureP@ss123') {
-      return {
-        id: 'theara-portfolio-admin',
-        email: cleanEmail,
-        passwordHash: '',
-        firstName: 'Theara',
-        lastName: 'Chim',
-        role: 'ADMIN',
-        organizationId: 'portfolio-org-id',
-        organizationName: 'Portfolio',
-        createdAt: now,
-      };
-    }
+  if (!isDatabaseConfigured()) {
+    console.error(
+      'Login rejected: DATABASE_URL is not configured, so no account can be verified.'
+    );
+    return null;
   }
 
-  if (cleanEmail === 'admin@acme-support.local' && pass === 'AdminPass123!') {
-    return {
-      id: 'super-admin-root',
-      email: cleanEmail,
-      passwordHash: '',
-      firstName: 'Super',
-      lastName: 'Admin',
-      role: 'SUPER_ADMIN',
-      organizationId: 'acme-org-id',
-      organizationName: 'Acme Support Platform',
-      createdAt: now,
-    };
-  }
-
-  if (cleanEmail === 'admin@company.com' && pass === 'SecureP@ss123') {
-    return {
-      id: 'tenant-admin-demo',
-      email: cleanEmail,
-      passwordHash: '',
-      firstName: 'Tenant',
-      lastName: 'Admin',
-      role: 'ADMIN',
-      organizationId: 'demo-org-id',
-      organizationName: 'Company Support',
-      createdAt: now,
-    };
-  }
-
-  if (cleanEmail === 'agent@company.com' && pass === 'SecureP@ss123') {
-    return {
-      id: 'agent-demo',
-      email: cleanEmail,
-      passwordHash: '',
-      firstName: 'Support',
-      lastName: 'Agent',
-      role: 'SUPPORT_AGENT',
-      organizationId: 'demo-org-id',
-      organizationName: 'Company Support',
-      createdAt: now,
-    };
-  }
-
-  return null;
+  return findPersistedAccount(cleanEmail, pass);
 }

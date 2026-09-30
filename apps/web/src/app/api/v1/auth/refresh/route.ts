@@ -1,27 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
-
-function createJwt(payload: any, secret: string, expiresInSec: number = 3600): string {
-  const header = { alg: 'HS256', typ: 'JWT' };
-  const exp = Math.floor(Date.now() / 1000) + expiresInSec;
-  const fullPayload = { ...payload, exp };
-
-  const encode = (obj: any) =>
-    Buffer.from(JSON.stringify(obj)).toString('base64url');
-
-  const headerB64 = encode(header);
-  const payloadB64 = encode(fullPayload);
-  const signature = crypto
-    .createHmac('sha256', secret)
-    .update(`${headerB64}.${payloadB64}`)
-    .digest('base64url');
-
-  return `${headerB64}.${payloadB64}.${signature}`;
-}
+import { getPrisma, isDatabaseConfigured } from '@/lib/prisma';
+import {
+  createAccessToken,
+  createRefreshToken,
+  verifyToken,
+  type RefreshTokenPayload,
+} from '@/lib/jwt';
 
 export async function POST(req: NextRequest) {
   try {
-    const { refreshToken } = await req.json().catch(() => ({}));
+    const { refreshToken } = await req.json().catch(() => ({}) as { refreshToken?: string });
+
     if (!refreshToken) {
       return NextResponse.json(
         { success: false, error: { message: 'Refresh token is required' } },
@@ -29,26 +18,51 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const jwtSecret =
-      process.env.JWT_SECRET || 'super_secret_jwt_access_key_change_in_production';
+    // The token must be authentic, unexpired and of refresh type. The previous
+    // implementation skipped this check and minted an ADMIN token for whatever
+    // `sub` the caller supplied.
+    const payload = verifyToken<RefreshTokenPayload>(refreshToken);
 
-    // Issue refreshed pair
-    const accessToken = createJwt(
-      { sub: 'refreshed-session', role: 'ADMIN' },
-      jwtSecret,
-      86400
-    );
-    const newRefreshToken = createJwt(
-      { sub: 'refreshed-session', type: 'refresh' },
-      jwtSecret,
-      604800
-    );
+    if (!payload || payload.type !== 'refresh' || !payload.sub) {
+      return NextResponse.json(
+        { success: false, error: { message: 'Invalid or expired refresh token' } },
+        { status: 401 }
+      );
+    }
+
+    if (!isDatabaseConfigured()) {
+      return NextResponse.json(
+        { success: false, error: { message: 'Authentication is not configured' } },
+        { status: 503 }
+      );
+    }
+
+    // Re-read the user so role and org come from the database, never from the token.
+    const user = await getPrisma().user.findUnique({
+      where: { id: payload.sub },
+      select: { id: true, email: true, role: true, organizationId: true },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: { message: 'Account no longer exists' } },
+        { status: 401 }
+      );
+    }
+
+    const accessToken = createAccessToken({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      organizationId: user.organizationId || '',
+    });
 
     return NextResponse.json({
       success: true,
-      data: { accessToken, refreshToken: newRefreshToken },
+      data: { accessToken, refreshToken: createRefreshToken(user.id) },
     });
   } catch (err: any) {
+    console.error('Refresh route error:', err);
     return NextResponse.json(
       { success: false, error: { message: err?.message || 'Token refresh failed' } },
       { status: 500 }

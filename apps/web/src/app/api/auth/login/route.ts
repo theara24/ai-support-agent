@@ -1,24 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
 import { authenticateCredentials } from '@/lib/tenant-accounts';
-
-function createJwt(payload: any, secret: string, expiresInSec: number = 3600): string {
-  const header = { alg: 'HS256', typ: 'JWT' };
-  const exp = Math.floor(Date.now() / 1000) + expiresInSec;
-  const fullPayload = { ...payload, exp };
-
-  const encode = (obj: any) =>
-    Buffer.from(JSON.stringify(obj)).toString('base64url');
-
-  const headerB64 = encode(header);
-  const payloadB64 = encode(fullPayload);
-  const signature = crypto
-    .createHmac('sha256', secret)
-    .update(`${headerB64}.${payloadB64}`)
-    .digest('base64url');
-
-  return `${headerB64}.${payloadB64}.${signature}`;
-}
+import { createAccessToken, createRefreshToken } from '@/lib/jwt';
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,10 +16,7 @@ export async function POST(req: NextRequest) {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPass = password.trim();
 
-    const jwtSecret =
-      process.env.JWT_SECRET || 'super_secret_jwt_access_key_change_in_production';
-
-    // Authenticate against database, provisioned tenants, and production baseline accounts
+    // Authenticate against the persisted Postgres accounts
     const account = await authenticateCredentials(cleanEmail, cleanPass);
 
     if (!account) {
@@ -57,12 +36,14 @@ export async function POST(req: NextRequest) {
       organizationName: account.organizationName,
     };
 
-    const accessToken = createJwt(
-      { sub: user.id, email: user.email, role: user.role, organizationId: user.organizationId },
-      jwtSecret,
-      86400
-    );
-    const refreshToken = createJwt({ sub: user.id, type: 'refresh' }, jwtSecret, 604800);
+    // `sub` is the real users.id so the API's JwtStrategy can resolve it.
+    const accessToken = createAccessToken({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      organizationId: user.organizationId,
+    });
+    const refreshToken = createRefreshToken(user.id);
 
     return NextResponse.json({
       success: true,
