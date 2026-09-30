@@ -1,7 +1,7 @@
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 
 export function getCorsOrigins(): string[] {
-  const envOrigins = process.env.CORS_ORIGINS;
+  const envOrigins = process.env.CORS_ORIGINS || process.env.CORS_ORIGIN;
   if (envOrigins && envOrigins.trim()) {
     return envOrigins
       .split(',')
@@ -36,7 +36,13 @@ export const corsOptions: CorsOptions = {
     }
 
     const allowedOrigins = getCorsOrigins();
-    if (allowedOrigins.includes(origin)) {
+    if (
+      allowedOrigins.includes('*') ||
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1')
+    ) {
       return callback(null, true);
     }
 
@@ -44,5 +50,12 @@ export const corsOptions: CorsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-access-token', 'Accept'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'x-access-token',
+    'Accept',
+    'x-requested-with',
+    'x-request-id',
+  ],
 };
