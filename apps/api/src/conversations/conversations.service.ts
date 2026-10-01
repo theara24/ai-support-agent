@@ -34,8 +34,12 @@ export class ConversationsService {
     if (!effectiveOrgId) {
       const defaultOrg =
         (await this.prisma.organization.findFirst({
+          where: { slug: 'theara-ai-support' },
+        })) ||
+        (await this.prisma.organization.findFirst({
           where: { slug: 'acme-support' },
-        })) || (await this.prisma.organization.findFirst());
+        })) ||
+        (await this.prisma.organization.findFirst());
       effectiveOrgId = defaultOrg?.id;
     }
 

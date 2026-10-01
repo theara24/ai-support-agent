@@ -35,6 +35,7 @@
     greeting: (currentScript && currentScript.getAttribute('data-greeting')) || 'Hi there! How can I help you today?',
     quickQuestions: (currentScript && currentScript.getAttribute('data-quick-questions')) || '',
     position: (currentScript && currentScript.getAttribute('data-position')) || 'bottom-right',
+    theme: (currentScript && currentScript.getAttribute('data-theme')) || '',
   };
 
   // Build target iframe URL
@@ -45,6 +46,9 @@
   iframeUrl.searchParams.set('greeting', config.greeting);
   if (config.quickQuestions) {
     iframeUrl.searchParams.set('quickQuestions', config.quickQuestions);
+  }
+  if (config.theme) {
+    iframeUrl.searchParams.set('theme', config.theme);
   }
 
   // Inject Stylesheet

@@ -114,6 +114,21 @@ async function main() {
   // 3. Knowledge Base Documents
   const DOCS = [
     {
+      title: 'Theara Chim - Biography, Technical Stack & Skills',
+      content:
+        'Theara Chim is a versatile Software Developer and Full-Stack Engineer based in Cambodia. She specializes in backend engineering, distributed message-queue services, REST APIs, and responsive web applications.\n\nPrimary Technical Stack:\n- Programming Languages: TypeScript, JavaScript, SQL, HTML5, CSS3\n- Backend Frameworks: Node.js, Express.js, NestJS\n- Databases: PostgreSQL (with pgvector), MySQL, MongoDB\n- Messaging & Distributed Queues: RabbitMQ, BullMQ, Redis\n- Frontend: React.js, Next.js 14, Tailwind CSS, Three.js, Vue.js\n- DevOps, Cloud & Tools: Docker, Docker Compose, Docker Swarm, Nginx, Git, GitHub Actions CI/CD.',
+    },
+    {
+      title: 'Theara Chim - Professional Work Experience',
+      content:
+        'Theara Chim has extensive experience in software development and distributed architectures:\n1. Backend Developer at Everlast Information & Apps Dev Co., Ltd. (October 2025 – September 2026):\n- Built and maintained REST APIs and monorepo microservices using TypeScript, Node.js, and Express.js.\n- Engineered omnichannel messaging services integrating Telegram, WhatsApp, LINE, and Messenger powered by RabbitMQ, BullMQ, and Redis.\n- Designed database schemas and optimized SQL queries across PostgreSQL, MySQL, and MongoDB.\n- Implemented strict concurrency control, distributed caching, transactional integrity, and HMAC/JWT security.\n- Deployed production services with Docker Swarm, Nginx, and automated CI/CD pipelines.\n\n2. Freelance Full-Stack Developer (2024 – Present):\n- Engineered full-stack solutions, client admin dashboards, and custom AI support automation platforms.',
+    },
+    {
+      title: 'Theara Chim - Featured Projects & Contact',
+      content:
+        'Featured Projects built by Theara Chim:\n1. AI Customer Support & Assistant Platform: Multi-tenant autonomous support platform with pgvector HNSW semantic search, deterministic tool execution, real-time WebSockets, and human agent takeover.\n2. Omnichannel Notification & Queue Dispatcher: High-throughput asynchronous messaging engine using RabbitMQ and Redis.\n3. Modern 3D Interactive Portfolio: Built with Next.js 14, Three.js, React Three Fiber, and Tailwind CSS.\n\nContact & Links:\n- Portfolio: https://theara-portfolio.vercel.app\n- GitHub: https://github.com/theara24\n- LinkedIn: https://www.linkedin.com/in/theara-chim-971845341/\n- Telegram: https://t.me/chim_theara\n- Availability: Open to software developer roles, full-stack, and backend engineering positions.',
+    },
+    {
       title: 'Payment Methods',
       content:
         'Acme Support accepts payments through KHQR, Visa, Mastercard, and Direct Bank Transfer. All payments are encrypted with 256-bit SSL protocols. We do not accept cash-on-delivery or cryptocurrency at this time. Invoices are automatically emailed upon payment authorization.',
@@ -124,38 +139,13 @@ async function main() {
         'Acme Support partners with FedEx, UPS, and DHL. Standard ground shipping delivers within 2-4 business days across the continental United States. Express shipping (1-2 business days) is available at checkout. All orders exceeding $50 automatically qualify for free standard shipping. Tracking numbers are provided as soon as packages leave the facility.',
     },
     {
-      title: 'Return Policy',
-      content:
-        'Customers can return merchandise within 30 days of delivery. To be eligible for a full refund, items must be in original packaging with all included accessories. Customers can initiate a return by contacting support or generating a pre-paid return shipping label through the portal.',
-    },
-    {
-      title: 'Refund Policy',
-      content:
-        'Once returned items are received and inspected at our central fulfillment warehouse, refunds are initiated within 3-5 business days. The refund will be credited back to your original payment method (KHQR, credit card, or bank account). Depending on your financial institution, funds appear on your statement within 2-4 business days.',
-    },
-    {
-      title: 'Order Cancellation',
-      content:
-        'Orders can be cancelled free of charge within 2 hours of placement while in PROCESSING status. Once an order has reached SHIPPED status, the shipment cannot be intercepted or cancelled; customers should instead utilize our 30-day return policy upon delivery.',
-    },
-    {
-      title: 'Account Security',
-      content:
-        'Acme implements strict data privacy and user account security standards. Two-factor authentication (2FA) is supported. Support agents will never ask for your password or full payment credentials. If you notice suspicious activity, reset your password immediately via the account settings.',
-    },
-    {
-      title: 'Delivery Times',
-      content:
-        'Orders submitted before 2:00 PM EST on business days are processed and dispatched on the same day. Orders placed during weekends or public holidays ship on the next business day. Estimated delivery dates are displayed during checkout and tracked via order IDs (such as ACME-1001, ACME-1002, ACME-1003).',
-    },
-    {
       title: 'Frequently Asked Questions',
       content:
-        'Frequently Asked Questions at Acme Support:\nQ: How can I track my order?\nA: Provide your order ID (e.g., ACME-1001) in the chat and our assistant will look up the status and tracking details.\nQ: Can I speak to a live human agent?\nA: Yes! Simply ask to speak with a human support agent and your conversation will be escalated to our available team.\nQ: What if my item arrives damaged?\nA: Our AI assistant or support staff can immediately open an official support ticket and arrange a replacement shipment.',
+        'Frequently Asked Questions at Acme Support:\nQ: How can I track my order?\nA: Provide your order ID (e.g., ACME-1001) in the chat and our assistant will look up the status and tracking details.\nQ: Can I speak to a live human agent?\nA: Yes! Simply ask to speak with a human support agent and your conversation will be escalated to our available team.',
     },
   ];
 
-  console.log(`\n📚 Ingesting Acme Knowledge Base Documents & Generating 768-dim Vector Embeddings...`);
+  console.log(`\n📚 Ingesting Knowledge Base Documents & Generating 768-dim Vector Embeddings...`);
 
   const apiKey = process.env.GEMINI_API_KEY;
   const genAI = (apiKey && apiKey !== 'mock_key' && apiKey !== 'your_gemini_api_key_here')

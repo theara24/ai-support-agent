@@ -221,10 +221,20 @@ Instructions:
               } else {
                 finalResponseText = `Your order ${executed.result.orderId} status is ${executed.result.status}. Carrier: ${executed.result.carrier}, Tracking number: ${executed.result.trackingNumber}. Estimated delivery: ${executed.result.estimatedDelivery}.`;
               }
+            } else if (toolCall.name === 'searchKnowledgeBase') {
+              if (executed.result?.results?.length > 0) {
+                finalResponseText = executed.result.results.map((r: any) => r.content).join('\n\n');
+              } else {
+                finalResponseText = `I checked our knowledge base, but could not find specific details matching your question.`;
+              }
             }
           }
         }
       }
+    }
+
+    if (finalResponseText.startsWith('[Invoking tool:')) {
+      finalResponseText = `I checked our knowledge base for details regarding your inquiry. Please feel free to ask me more specific questions about ${orgName}.`;
     }
 
     // Strict guardrail: Purge any accidental Thai characters (Unicode range U+0E00 to U+0E7F)
